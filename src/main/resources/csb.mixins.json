@@ -5,8 +5,8 @@
   "client": [
     "MixinWorldRenderer",
     "MixinClientPlayerEntity",
-    "MixinClientPlayNetworkHandler",
-    "MixinChatScreen"
+    "MixinChatScreen",
+    "MixinCommandManager"
   ],
   "minVersion": "0.7.11",
   "injectors": {

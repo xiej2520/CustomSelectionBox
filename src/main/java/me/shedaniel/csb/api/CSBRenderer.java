@@ -2,11 +2,13 @@ package me.shedaniel.csb.api;
 
 import me.shedaniel.csb.CSBConfig;
 import me.shedaniel.csb.gui.CSBInfo;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.Window;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.entity.Entity;
+import net.minecraft.world.HitResult;
+import net.minecraft.world.InteractionResult;
 
 public interface CSBRenderer {
     /**
@@ -19,8 +21,8 @@ public interface CSBRenderer {
         return 1000d;
     }
     
-    default MinecraftClient getClient() {
-        return MinecraftClient.getInstance();
+    default Minecraft getClient() {
+        return Minecraft.getInstance();
     }
     
     @Deprecated
@@ -29,7 +31,7 @@ public interface CSBRenderer {
     }
     
     default float getOutlineThickness() {
-        return CSBConfig.getThickness() * Math.max(2.5F, (float)MinecraftClient.getInstance().getWindow().getFramebufferWidth() / 1920.0F * 2.5F);
+        return CSBConfig.getThickness() * Math.max(2.5F, (float) new Window(Minecraft.getInstance()).getWidth() / 1920.0F * 2.5F);
     }
     
     default int getOutlineColor() {
@@ -72,5 +74,5 @@ public interface CSBRenderer {
         return getInfo().getInnerAlpha();
     }
     
-    ActionResult render(ClientWorld world, Camera camera, BlockHitResult hitResult, float delta);
+    InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float delta);
 }

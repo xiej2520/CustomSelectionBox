@@ -1,60 +1,51 @@
 package me.shedaniel.csb.gui;
 
 import me.shedaniel.csb.CSBConfig;
-import net.minecraft.client.gui.widget.SliderWidget;
-import net.minecraft.text.LiteralText;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import org.lwjgl.opengl.GL11;
 
-import static me.shedaniel.csb.CSBConfig.*;
+public class CSBSliderWidget extends ButtonWidget {
 
-public class CSBSliderWidget extends SliderWidget {
-    
-    private final int id;
-    
-    CSBSliderWidget(int i, int x, int y, float f) {
-        super(x, y, 150, 20, LiteralText.EMPTY, f);
-        this.id = i;
-        this.setMessage(new LiteralText(getDisplayString(i)));
+    public boolean dragging;
+    private float value;
+
+    CSBSliderWidget(int id, int x, int y, float f) {
+        super(id, x, y, 150, 20, "");
+        this.value = f;
+        this.message = getDisplayString(id);
     }
-    
-    @Override
-    protected void updateMessage() {
-        setMessage(new LiteralText(getDisplayString(id)));
-    }
-    
-    @Override
-    protected void applyValue() {
-        updateValue(id);
-    }
-    
+
     private void updateValue(int id) {
         switch (id) {
             case 1:
-                setRed(getValue());
+                CSBConfig.setRed(getValue());
                 break;
             case 2:
-                setGreen(getValue());
+                CSBConfig.setGreen(getValue());
                 break;
             case 3:
-                setBlue(getValue());
+                CSBConfig.setBlue(getValue());
                 break;
             case 4:
                 CSBConfig.setAlpha(getValue());
                 break;
             case 5:
-                setThickness(getValue() * 7);
+                CSBConfig.setThickness(getValue() * 7);
                 break;
             case 7:
-                setBlinkAlpha(getValue());
+                CSBConfig.setBlinkAlpha(getValue());
                 break;
             case 8:
-                setBlinkSpeed(getValue());
+                CSBConfig.setBlinkSpeed(getValue());
+                break;
         }
     }
-    
+
     private float getValue() {
-        return (float) value;
+        return this.value;
     }
-    
+
     private String getDisplayString(int id) {
         switch (id) {
             case 1:
@@ -74,5 +65,52 @@ public class CSBSliderWidget extends SliderWidget {
         }
         return "Option Error?! (" + id + ")";
     }
-    
+
+    @Override
+    protected void renderBackground(Minecraft minecraft, int mouseX, int mouseY) {
+        if (this.visible) {
+            if (this.dragging) {
+                this.value = ((float) (mouseX - (this.x + 4)) / (float) (this.width - 8));
+                if (this.value < 0.0F) {
+                    this.value = 0.0F;
+                }
+
+                if (this.value > 1.0F) {
+                    this.value = 1.0F;
+                }
+
+                updateValue(this.id);
+                this.message = getDisplayString(this.id);
+            }
+
+            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+            this.drawTexture(this.x + (int) (this.value * (this.width - 8)), this.y, 0, 66, 4, 20);
+            this.drawTexture(this.x + (int) (this.value * (this.width - 8)) + 4, this.y, 196, 66, 4, 20);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(Minecraft minecraft, int mouseX, int mouseY) {
+        if (super.mouseClicked(minecraft, mouseX, mouseY)) {
+            this.value = ((float) (mouseX - (this.x + 4)) / (float) (this.width - 8));
+
+            if (this.value < 0.0F) {
+                this.value = 0.0F;
+            }
+
+            if (this.value > 1.0F) {
+                this.value = 1.0F;
+            }
+
+            this.message = getDisplayString(this.id);
+            this.dragging = true;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void mouseReleased(int mouseX, int mouseY) {
+        this.dragging = false;
+    }
 }

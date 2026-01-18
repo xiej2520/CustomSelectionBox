@@ -1,19 +1,18 @@
 package me.shedaniel.csb.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import me.shedaniel.csb.api.CSBRenderer;
 import me.shedaniel.csb.gui.CSBInfo;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ShapeContext;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.render.*;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.render.world.WorldRenderer;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Matrix4f;
-import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.math.Box;
+import net.minecraft.world.HitResult;
+import net.minecraft.world.InteractionResult;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -42,26 +41,21 @@ public abstract class MixinWorldRenderer implements CSBInfo {
     @Shadow private ClientWorld world;
     
     @Shadow
-    private static void drawShapeOutline(MatrixStack matrixStack, VertexConsumer vertexConsumer, VoxelShape voxelShape, double d, double e, double f, float g, float h, float i, float j) {
-    }
+    public static void renderOutlineShape(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, float r, float g, float b, float a) {}
+
+    @Shadow @Final private Minecraft minecraft;
     
-    @Shadow @Final private MinecraftClient client;
-    
-    @Redirect(method = "render", at = @At(value = "INVOKE",
-                                          target = "Lnet/minecraft/client/render/WorldRenderer;drawBlockOutline(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/entity/Entity;DDDLnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;)V",
-                                          ordinal = 0))
-    private void onDrawShapeOutline(WorldRenderer worldRenderer, MatrixStack matrixStack, VertexConsumer vertexConsumer, Entity entity, double d, double e, double f, BlockPos blockPos, BlockState blockState) {
+    @WrapOperation(method = "renderBlockOutline", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/world/WorldRenderer;renderOutlineShape(Lnet/minecraft/util/math/Box;FFFF)V"))
+    private void onRenderOutlineShape(Box shape, float r, float g, float b, float a, Operation<Void> original) {
         if (!isEnabled()) {
-            drawShapeOutline(matrixStack, vertexConsumer, blockState.getOutlineShape(world, blockPos, ShapeContext.of(entity)), blockPos.getX() - d, blockPos.getY() - e, blockPos.getZ() - f, 0.0F, 0.0F, 0.0F, 0.4F);
-            return;
+            original.call(shape, r, g, b, a);
+        } else {
+            render = true;
         }
-        render = true;
     }
-    
-    @Inject(method = "render",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;renderWorldBorder(Lnet/minecraft/client/render/Camera;)V",
-                     shift = At.Shift.AFTER))
-    private void renderWorldBorder(MatrixStack matrices, float delta, long limitTime, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightmapTextureManager lightmapTextureManager, Matrix4f matrix4f, CallbackInfo ci) {
+
+    @Inject(method = "renderWorldBorder", at = @At(value = "RETURN"))
+    private void renderCustomOutline(Entity camera, float tickDelta, CallbackInfo ci) {
         if (render) {
             r = getRed();
             g = getGreen();
@@ -75,17 +69,17 @@ public abstract class MixinWorldRenderer implements CSBInfo {
                 b = (color & 255) / 255.0f;
             }
             blinkingAlpha = getBlinkSpeed() > 0 ? getBlinkAlpha() * (float) Math.abs(Math.sin(System.currentTimeMillis() / 100.0D * getBlinkSpeed())) : getBlinkAlpha();
-            BlockHitResult hitResult = (BlockHitResult) client.crosshairTarget;
-            BlockPos blockPos = hitResult.getBlockPos();
+            net.minecraft.world.HitResult hitResult = minecraft.crosshairTarget;
+            BlockPos blockPos = hitResult.getPos();
             for (CSBRenderer renderer : RENDERERS) {
-                ActionResult result = Objects.requireNonNull(renderer.render(world, camera, hitResult, delta));
-                if (result != ActionResult.PASS)
+                InteractionResult result = Objects.requireNonNull(renderer.render(world, camera, hitResult, tickDelta));
+                if (result != InteractionResult.PASS)
                     break;
             }
             render = false;
         }
     }
-    
+
     @Override
     public float getOutlineRed() {
         return r;
