@@ -41,28 +41,34 @@ public class CSBDefaultRenderer implements CSBRenderer {
         GlStateManager.enableBlend();
         GlStateManager.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
         GlStateManager.disableTexture();
+
         GlStateManager.depthMask(false);
-        GlStateManager.disableDepthTest();
+        if (CSBConfig.isShowHidden()) {
+            GlStateManager.disableDepthTest();
+        }
 
         GL11.glLineWidth(getOutlineThickness());
 
         BlockPos blockPos = hitResult.getPos();
         BlockState blockState = world.getBlockState(blockPos);
 
-        if (CSBConfig.isAdjustBoundingBoxByLinkedBlocks()) {
+        if (CSBConfig.isLinkBlocks()) {
             Box originalShape = blockState.getOutlineShape(world, blockPos);
             Box[] shapes = adjustShapeByLinkedBlocks(world, blockState, blockPos, originalShape);
+            // expand to avoid z-fighting for outlines and blinking block
             for (Box shape : shapes) {
                 drawOutlinedBoundingBox(shape.expand(0.002), getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
-                drawBlinkingBlock(shape.expand(0.002), getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
+                drawBlinkingBlock(shape.expand(0.008), getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
             }
         } else {
-            Box shape = blockState.getOutlineShape(world, blockPos).expand(0.002);
-            drawOutlinedBoundingBox(shape, getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
-            drawBlinkingBlock(shape, getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
+            Box shape = blockState.getOutlineShape(world, blockPos);
+            drawOutlinedBoundingBox(shape.expand(0.002), getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
+            drawBlinkingBlock(shape.expand(0.008), getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
         }
 
-        GlStateManager.enableDepthTest();
+        if (CSBConfig.isShowHidden()) {
+            GlStateManager.enableDepthTest();
+        }
         GlStateManager.depthMask(true);
         GlStateManager.enableTexture();
         GlStateManager.disableBlend();

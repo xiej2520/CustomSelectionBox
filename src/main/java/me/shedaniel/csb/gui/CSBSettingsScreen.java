@@ -33,7 +33,7 @@ public class CSBSettingsScreen extends Screen {
                 CSBConfig.thickness,
                 CSBConfig.blinkAlpha,
                 CSBConfig.blinkSpeed,
-                CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.adjustBoundingBoxByLinkedBlocks
+                CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.linkBlocks
         );
         this.buttons.clear();
         // left
@@ -44,13 +44,14 @@ public class CSBSettingsScreen extends Screen {
         addButton(new CSBSliderWidget(5, 4, this.height / 2 + 34, CSBConfig.getThickness() / 7.0F));
 
         // right
-        addButton(new CSBSliderWidget(7, this.width - 154, this.height / 2 - 14, CSBConfig.getBlinkAlpha()));
-        addButton(new CSBSliderWidget(8, this.width - 154, this.height / 2 + 10, CSBConfig.getBlinkSpeed()));
-        addButton(new ButtonWidget(11, this.width - 154, this.height / 2 - 38, 150, 20, "Chroma: " + ((CSBConfig.usingRainbow()) ? "ON" : "OFF")));
-        addButton(new ButtonWidget(12, this.width - 154, this.height / 2 + 34, 150, 20, "Link Blocks: " + ((CSBConfig.isAdjustBoundingBoxByLinkedBlocks()) ? "ON" : "OFF")));
+        addButton(new CSBSliderWidget(7, this.width - 154, this.height / 2 - 44, CSBConfig.getBlinkAlpha()));
+        addButton(new CSBSliderWidget(8, this.width - 154, this.height / 2 - 20, CSBConfig.getBlinkSpeed()));
+        addButton(new ButtonWidget(11, this.width - 154, this.height / 2 - 68, 150, 20, "Chroma: " + ((CSBConfig.usingRainbow()) ? "ON" : "OFF")));
+        addButton(new ButtonWidget(12, this.width - 154, this.height / 2 + 4, 150, 20, "Link Blocks: " + ((CSBConfig.isLinkBlocks()) ? "ON" : "OFF")));
+        addButton(new ButtonWidget(13, this.width - 154, this.height / 2 + 28, 150, 20, "Show Hidden: " + ((CSBConfig.isShowHidden()) ? "ON" : "OFF")));
 
-        //below
-        addButton(new ButtonWidget(13, this.width / 2 - 100, this.height - 48, 95, 20, "Enabled: " + CSBConfig.isEnabled()));
+        // below
+        addButton(new ButtonWidget(14, this.width / 2 - 100, this.height - 48, 95, 20, "Enabled: " + CSBConfig.isEnabled()));
         addButton(new ButtonWidget(20, this.width / 2 - 5, this.height - 48, 95, 20, "Save"));
         addButton(new ButtonWidget(21, this.width / 2 - 100, this.height - 24, 95, 20, "CSB Defaults"));
         addButton(new ButtonWidget(22, this.width / 2 - 5, this.height - 24, 95, 20, "MC defaults"));
@@ -58,7 +59,7 @@ public class CSBSettingsScreen extends Screen {
 
     @Override
     public void buttonClicked(ButtonWidget button) {
-        if (button.id == 13) {
+        if (button.id == 14) {
             CSBConfig.setEnabled(!CSBConfig.isEnabled());
             button.message = "Enabled: " + CSBConfig.isEnabled();
         } else if (button.id == 20) {
@@ -70,7 +71,7 @@ public class CSBSettingsScreen extends Screen {
                         CSBConfig.thickness,
                         CSBConfig.blinkAlpha,
                         CSBConfig.blinkSpeed,
-                        CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.adjustBoundingBoxByLinkedBlocks
+                        CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.linkBlocks
                 );
             } catch (FileNotFoundException e) {
                 System.out.println("Failed to save csb config");
@@ -99,8 +100,11 @@ public class CSBSettingsScreen extends Screen {
             CSBConfig.setIsRainbow(!CSBConfig.usingRainbow());
             button.message = "Chroma: " + (CSBConfig.usingRainbow() ? "ON" : "OFF");
         } else if (button.id == 12) {
-            CSBConfig.setAdjustBoundingBoxByLinkedBlocks(!CSBConfig.isAdjustBoundingBoxByLinkedBlocks());
-            button.message = "Link Blocks: " + ((CSBConfig.isAdjustBoundingBoxByLinkedBlocks()) ? "ON" : "OFF");
+            CSBConfig.setLinkBlocks(!CSBConfig.isLinkBlocks());
+            button.message = "Link Blocks: " + ((CSBConfig.isLinkBlocks()) ? "ON" : "OFF");
+        } else if (button.id == 13) {
+            CSBConfig.setShowHidden(!CSBConfig.isShowHidden());
+            button.message = "Show Hidden: " + ((CSBConfig.isShowHidden()) ? "ON" : "OFF");
         }
     }
 
@@ -111,7 +115,7 @@ public class CSBSettingsScreen extends Screen {
         }
         fillGradient(0, 0, this.width, 48 - 4, -1072689136, -804253680); // top
         fillGradient(0, this.height / 2 - 67, 158, this.height / 2 + 59, -1072689136, -804253680); // left
-        fillGradient(this.width - 158, this.height / 2 - 43, this.width, this.height / 2 + 59, -1072689136, -804253680); // right
+        fillGradient(this.width - 158, this.height / 2 - 73, this.width, this.height / 2 + 53, -1072689136, -804253680); // right
         fillGradient(0, this.height - 48 - 4, this.width, this.height, -1072689136, -804253680); // bottom
 
         drawCenteredString(this.textRenderer, "Custom Selection Box", this.width / 2, (this.height - (this.height + 4 - 48)) / 2 - 4, 16777215);
@@ -133,7 +137,7 @@ public class CSBSettingsScreen extends Screen {
                 CSBConfig.thickness,
                 CSBConfig.blinkAlpha,
                 CSBConfig.blinkSpeed,
-                CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.adjustBoundingBoxByLinkedBlocks
+                CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.linkBlocks
         );
     }
 

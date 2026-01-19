@@ -41,7 +41,7 @@ public class ConfigCache {
         CSBConfig.blinkSpeed = blinkSpeed;
         CSBConfig.disableDepthBuffer = disableDepthBuffer;
         CSBConfig.rainbow = rainbow;
-        CSBConfig.adjustBoundingBoxByLinkedBlocks = adjustBoundingBoxByLinkedBlocks;
+        CSBConfig.linkBlocks = adjustBoundingBoxByLinkedBlocks;
     }
     
 }

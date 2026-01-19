@@ -22,7 +22,8 @@ public class CSBConfig implements ClientModInitializer {
     public static float blinkAlpha;
     public static float blinkSpeed;
     public static boolean disableDepthBuffer;
-    public static boolean adjustBoundingBoxByLinkedBlocks;
+    public static boolean linkBlocks;
+    public static boolean showHidden;
     public static boolean rainbow;
     private static File configFile = new File(FabricLoader.getInstance().getGameDirectory(), "config" + File.separator + "CSB" + File.separator + "config.json");
     
@@ -41,7 +42,7 @@ public class CSBConfig implements ClientModInitializer {
         blinkAlpha = jsonObject.has("blinkAlpha") ? jsonObject.get("blinkAlpha").getAsInt() / 255.0F : 0.390625F;
         disableDepthBuffer = jsonObject.has("disableDepthBuffer") && jsonObject.get("disableDepthBuffer").getAsBoolean();
         rainbow = jsonObject.has("rainbow") && jsonObject.get("rainbow").getAsBoolean();
-        adjustBoundingBoxByLinkedBlocks = jsonObject.has("adjustBoundingBoxByLinkedBlocks") && jsonObject.get("adjustBoundingBoxByLinkedBlocks").getAsBoolean();
+        linkBlocks = jsonObject.has("adjustBoundingBoxByLinkedBlocks") && jsonObject.get("adjustBoundingBoxByLinkedBlocks").getAsBoolean();
         
         saveConfig();
     }
@@ -58,7 +59,7 @@ public class CSBConfig implements ClientModInitializer {
         object.addProperty("blinkAlpha", (int) (blinkAlpha * 255));
         object.addProperty("disableDepthBuffer", disableDepthBuffer);
         object.addProperty("rainbow", rainbow);
-        object.addProperty("adjustBoundingBoxByLinkedBlocks", adjustBoundingBoxByLinkedBlocks);
+        object.addProperty("adjustBoundingBoxByLinkedBlocks", linkBlocks);
         if (configFile.exists())
             configFile.delete();
         PrintWriter writer = new PrintWriter(configFile);
@@ -90,18 +91,26 @@ public class CSBConfig implements ClientModInitializer {
         setBlinkSpeed(0.2F);
         disableDepthBuffer = false;
         setIsRainbow(false);
-        setAdjustBoundingBoxByLinkedBlocks(false);
+        setLinkBlocks(false);
         saveConfig();
     }
     
-    public static boolean isAdjustBoundingBoxByLinkedBlocks() {
-        return adjustBoundingBoxByLinkedBlocks;
+    public static boolean isLinkBlocks() {
+        return linkBlocks;
     }
     
-    public static void setAdjustBoundingBoxByLinkedBlocks(boolean adjustBoundingBoxByLinkedBlocks) {
-        CSBConfig.adjustBoundingBoxByLinkedBlocks = adjustBoundingBoxByLinkedBlocks;
+    public static void setLinkBlocks(boolean linkBlocks) {
+        CSBConfig.linkBlocks = linkBlocks;
     }
-    
+
+    public static boolean isShowHidden() {
+        return showHidden;
+    }
+
+    public static void setShowHidden(boolean showHidden) {
+        CSBConfig.showHidden = showHidden;
+    }
+
     public static boolean isEnabled() {
         return enabled;
     }
