@@ -1,12 +1,13 @@
 package me.shedaniel.csb;
 
 import me.shedaniel.csb.api.CSBRenderer;
-import net.minecraft.block.*;
 import net.minecraft.block.state.BlockState;
 import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.platform.GlStateManager;
 import net.minecraft.client.render.vertex.BufferBuilder;
 import net.minecraft.client.render.vertex.DefaultVertexFormat;
 import net.minecraft.client.render.vertex.Tesselator;
+import net.minecraft.client.render.world.WorldRenderer;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
@@ -24,24 +25,47 @@ public class CSBDefaultRenderer implements CSBRenderer {
     }
 
     @Override
-    public InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float delta) {
+    public InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float tickDelta) {
         GL11.glEnable(GL11.GL_LINE_SMOOTH);
+
+        GlStateManager.enableBlend();
+        GlStateManager.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
+        GL11.glLineWidth(getOutlineThickness());
+        GlStateManager.disableTexture();
+        GlStateManager.depthMask(false);
+        GlStateManager.disableDepthTest();
+
         BlockPos blockPos = hitResult.getPos();
         BlockState blockState = world.getBlockState(blockPos);
-        Vec3d cameraPos = Camera.getPos(camera, delta);
+        Vec3d cameraPos = Camera.getPos(camera, tickDelta);
+
         Box shape = blockState.getOutlineShape(world, blockPos);
+        double dx = camera.prevX + (camera.x - camera.prevX) * tickDelta;
+        double dy = camera.prevY + (camera.y - camera.prevY) * tickDelta;
+        double dz = camera.prevZ + (camera.z - camera.prevZ) * tickDelta;
+
+        Box offsetShape = shape.expand(0.002F).moved(-dx, -dy, -dz);
         if (CSBConfig.isAdjustBoundingBoxByLinkedBlocks()) {
             //shape = adjustShapeByLinkedBlocks(world, blockState, blockPos, shape);
         }
-        drawOutlinedBoundingBox(shape, blockPos.getX() - cameraPos.x, blockPos.getY()  - cameraPos.y, blockPos.getZ() - cameraPos.z, getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
-        drawBlinkingBlock(shape, blockPos.getX() - cameraPos.x, blockPos.getY() - cameraPos.y, blockPos.getZ() - cameraPos.z, getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
+        drawOutlinedBoundingBox(offsetShape, getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
+        drawBlinkingBlock(offsetShape, dx, dy, dz, getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
+
+
+        GlStateManager.enableDepthTest();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableTexture();
+        GlStateManager.disableBlend();
+
+
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
+
         return InteractionResult.SUCCESS;
     }
-    
-    private void drawOutlinedBoundingBox(Box voxelShapeIn, double xIn, double yIn, double zIn, float red, float green, float blue, float alpha) {
-        Tesselator tessellator = Tesselator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
+
+    private void drawOutlinedBoundingBox(Box voxelShapeIn, float red, float green, float blue, float alpha) {
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder buffer = tesselator.getBuffer();
         //RenderSystem.pushMatrix();
         //RenderSystem.enableBlend();
         //RenderSystem.enableDepthTest();
@@ -53,6 +77,7 @@ public class CSBDefaultRenderer implements CSBRenderer {
         //RenderSystem.disableCull();
         //RenderSystem.disableTexture();
         //RenderSystem.lineWidth(getOutlineThickness());
+
         buffer.begin(3, DefaultVertexFormat.POSITION_COLOR);
         //voxelShapeIn.forEachEdge((k, l, m, n, o, p)  -> {
         //    buffer.vertex( (float)(k + xIn), (float)(l + yIn), (float)(m + zIn)).next();
@@ -65,25 +90,26 @@ public class CSBDefaultRenderer implements CSBRenderer {
         double minZ = voxelShapeIn.minZ;
         double maxZ = voxelShapeIn.maxZ;
 
-        buffer.vertex(minX, minY, minZ).color(red, green, blue, 0.0F).nextVertex();
-        buffer.vertex(minX, minY, minZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(maxX, minY, minZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(maxX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(minX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(minX, minY, minZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(minX, maxY, minZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(maxX, maxY, minZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(maxX, maxY, maxZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(minX, maxY, maxZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(minX, maxY, minZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(minX, maxY, maxZ).color(red, green, blue, 0.0F).nextVertex();
-        buffer.vertex(minX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(maxX, maxY, maxZ).color(red, green, blue, 0.0F).nextVertex();
-        buffer.vertex(maxX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(maxX, maxY, minZ).color(red, green, blue, 0.0F).nextVertex();
-        buffer.vertex(maxX, minY, minZ).color(red, green, blue, alpha).nextVertex();
-        buffer.vertex(maxX, minY, minZ).color(red, green, blue, 0.0F).nextVertex();
-        tessellator.end();
+        //buffer.vertex(minX, minY, minZ).color(red, green, blue, 0.0F).nextVertex();
+        //buffer.vertex(minX, minY, minZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(maxX, minY, minZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(maxX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(minX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(minX, minY, minZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(minX, maxY, minZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(maxX, maxY, minZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(maxX, maxY, maxZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(minX, maxY, maxZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(minX, maxY, minZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(minX, maxY, maxZ).color(red, green, blue, 0.0F).nextVertex();
+        //buffer.vertex(minX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(maxX, maxY, maxZ).color(red, green, blue, 0.0F).nextVertex();
+        //buffer.vertex(maxX, minY, maxZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(maxX, maxY, minZ).color(red, green, blue, 0.0F).nextVertex();
+        //buffer.vertex(maxX, minY, minZ).color(red, green, blue, alpha).nextVertex();
+        //buffer.vertex(maxX, minY, minZ).color(red, green, blue, 0.0F).nextVertex();
+        WorldRenderer.addVerticesForOutlineShape(buffer, minX, minY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
+        tesselator.end();
 //        for (Box box : voxelShapeIn.getBoundingBoxes()) {
 //            vertexConsumer.begin(1, VertexFormats.POSITION);
 //            vertexConsumer.vertex((float) (box.x1 - 0.005 + xIn), (float) (box.y1 - 0.005 + yIn), (float) (box.z1 - 0.005 + zIn)).next();
@@ -141,7 +167,7 @@ public class CSBDefaultRenderer implements CSBRenderer {
         //RenderSystem.depthMask(true);
         //RenderSystem.popMatrix();
     }
-    
+
     private void drawBlinkingBlock(Box voxelShapeIn, double xIn, double yIn, double zIn, float red, float green, float blue, float alpha) {
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder buffer = tesselator.getBuffer();
@@ -163,7 +189,8 @@ public class CSBDefaultRenderer implements CSBRenderer {
         //for (Box box : shape.getBoundingBoxes()) {
         //    box(tesselator, buffer, box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, xIn, yIn, zIn);
         //}
-        box(tesselator, buffer, voxelShapeIn.minX, voxelShapeIn.minY, voxelShapeIn.minZ, voxelShapeIn.maxX, voxelShapeIn.maxY, voxelShapeIn.maxZ, xIn, yIn, zIn);
+        GlStateManager.color4f(red, green, blue, alpha);
+        box(tesselator, buffer, voxelShapeIn);
         //RenderSystem.enableCull();
         //RenderSystem.disableAlphaTest();
         //RenderSystem.enableAlphaTest();
@@ -171,66 +198,66 @@ public class CSBDefaultRenderer implements CSBRenderer {
         //RenderSystem.depthMask(true);
         //RenderSystem.popMatrix();
     }
-    
-    private void box(Tesselator tessellator, BufferBuilder buffer, double x1, double y1, double z1, double x2, double y2, double z2, double xIn, double yIn, double zIn) {
-//        x1 -= 0.005;
-//        y1 -= 0.005;
-//        z1 -= 0.005;
-//        x2 += 0.005;
-//        y2 += 0.005;
-//        z2 += 0.005;
-        buffer.begin(7, DefaultVertexFormat.POSITION);
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y1 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        tessellator.end();
-        
+
+    private void box(Tesselator tesselator, BufferBuilder buffer, Box box) {
+        double minX = box.minX;
+        double maxX = box.maxX;
+        double minY = box.minY;
+        double maxY = box.maxY;
+        double minZ = box.minZ;
+        double maxZ = box.maxZ;
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormat.POSITION);
+        buffer.vertex(minX, minY, minZ).nextVertex();
+        buffer.vertex(maxX, minY, minZ).nextVertex();
+        buffer.vertex(maxX, minY, maxZ).nextVertex();
+        buffer.vertex(minX, minY, maxZ).nextVertex();
+        buffer.vertex(minX, minY, minZ).nextVertex();
+        tesselator.end();
+
         //Down
-        buffer.begin(7, DefaultVertexFormat.POSITION);
-        buffer.vertex((float) (x1 + xIn), (float) (y2 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y2 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y2 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y2 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y2 + yIn), (float) (z1 + zIn)).nextVertex();
-        tessellator.end();
-        
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormat.POSITION);
+        buffer.vertex(minX, maxY, minZ).nextVertex();
+        buffer.vertex(minX, maxY, maxZ).nextVertex();
+        buffer.vertex(maxX, maxY, maxZ).nextVertex();
+        buffer.vertex(maxX, maxY, minZ).nextVertex();
+        buffer.vertex(minX, maxY, minZ).nextVertex();
+        tesselator.end();
+
         //North
-        buffer.begin(7, DefaultVertexFormat.POSITION);
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y2 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y2 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        tessellator.end();
-        
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormat.POSITION);
+        buffer.vertex(minX, minY, minZ).nextVertex();
+        buffer.vertex(minX, maxY, minZ).nextVertex();
+        buffer.vertex(maxX, maxY, minZ).nextVertex();
+        buffer.vertex(maxX, minY, minZ).nextVertex();
+        buffer.vertex(minX, minY, minZ).nextVertex();
+        tesselator.end();
+
         //South
-        buffer.begin(7, DefaultVertexFormat.POSITION);
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y1 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y2 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y2 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z2 + zIn)).nextVertex();
-        tessellator.end();
-        
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormat.POSITION);
+        buffer.vertex(minX, minY, maxZ).nextVertex();
+        buffer.vertex(maxX, minY, maxZ).nextVertex();
+        buffer.vertex(maxX, maxY, maxZ).nextVertex();
+        buffer.vertex(minX, maxY, maxZ).nextVertex();
+        buffer.vertex(minX, minY, maxZ).nextVertex();
+        tesselator.end();
+
         //West
-        buffer.begin(7, DefaultVertexFormat.POSITION);
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y2 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y2 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x1 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        tessellator.end();
-        
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormat.POSITION);
+        buffer.vertex(minX, minY, minZ).nextVertex();
+        buffer.vertex(minX, minY, maxZ).nextVertex();
+        buffer.vertex(minX, maxY, maxZ).nextVertex();
+        buffer.vertex(minX, maxY, minZ).nextVertex();
+        buffer.vertex(minX, minY, minZ).nextVertex();
+        tesselator.end();
+
         //East
-        buffer.begin(7, DefaultVertexFormat.POSITION);
-        buffer.vertex((float) (x2 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y2 + yIn), (float) (z1 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y2 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y1 + yIn), (float) (z2 + zIn)).nextVertex();
-        buffer.vertex((float) (x2 + xIn), (float) (y1 + yIn), (float) (z1 + zIn)).nextVertex();
-        tessellator.end();
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormat.POSITION);
+        buffer.vertex(maxX, minY, minZ).nextVertex();
+        buffer.vertex(maxX, maxY, minZ).nextVertex();
+        buffer.vertex(maxX, maxY, maxZ).nextVertex();
+        buffer.vertex(maxX, minY, maxZ).nextVertex();
+        buffer.vertex(maxX, minY, minZ).nextVertex();
+        tesselator.end();
     }
 
     //private Box adjustShapeByLinkedBlocks(ClientWorld world, BlockState blockState, BlockPos blockPos, Box shape) {
