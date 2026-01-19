@@ -2,7 +2,6 @@ package me.shedaniel.csb.gui;
 
 import me.shedaniel.csb.CSB;
 import me.shedaniel.csb.CSBConfig;
-import me.shedaniel.csb.utils.ConfigCache;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 
@@ -27,14 +26,7 @@ public class CSBSettingsScreen extends Screen {
 
     @Override
     public void init() {
-        this.configCache = new ConfigCache(
-                CSBConfig.enabled,
-                CSBConfig.red, CSBConfig.green, CSBConfig.blue, CSBConfig.alpha,
-                CSBConfig.thickness,
-                CSBConfig.blinkAlpha,
-                CSBConfig.blinkSpeed,
-                CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.linkBlocks
-        );
+        this.configCache = new ConfigCache();
         this.buttons.clear();
         // left
         addButton(new CSBSliderWidget(1, 4, this.height / 2 - 62, CSBConfig.getRed()));
@@ -46,7 +38,7 @@ public class CSBSettingsScreen extends Screen {
         // right
         addButton(new CSBSliderWidget(7, this.width - 154, this.height / 2 - 44, CSBConfig.getBlinkAlpha()));
         addButton(new CSBSliderWidget(8, this.width - 154, this.height / 2 - 20, CSBConfig.getBlinkSpeed()));
-        addButton(new ButtonWidget(11, this.width - 154, this.height / 2 - 68, 150, 20, "Chroma: " + ((CSBConfig.usingRainbow()) ? "ON" : "OFF")));
+        addButton(new ButtonWidget(11, this.width - 154, this.height / 2 - 68, 150, 20, "Rainbow: " + ((CSBConfig.isRainbow()) ? "ON" : "OFF")));
         addButton(new ButtonWidget(12, this.width - 154, this.height / 2 + 4, 150, 20, "Link Blocks: " + ((CSBConfig.isLinkBlocks()) ? "ON" : "OFF")));
         addButton(new ButtonWidget(13, this.width - 154, this.height / 2 + 28, 150, 20, "Show Hidden: " + ((CSBConfig.isShowHidden()) ? "ON" : "OFF")));
 
@@ -65,14 +57,7 @@ public class CSBSettingsScreen extends Screen {
         } else if (button.id == 20) {
             try {
                 CSBConfig.saveConfig();
-                this.configCache = new ConfigCache(
-                        CSBConfig.enabled,
-                        CSBConfig.red, CSBConfig.green, CSBConfig.blue, CSBConfig.alpha,
-                        CSBConfig.thickness,
-                        CSBConfig.blinkAlpha,
-                        CSBConfig.blinkSpeed,
-                        CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.linkBlocks
-                );
+                this.configCache = new ConfigCache();
             } catch (FileNotFoundException e) {
                 System.out.println("Failed to save csb config");
                 e.printStackTrace();
@@ -82,6 +67,7 @@ public class CSBSettingsScreen extends Screen {
             try {
                 CSBConfig.reset(false);
                 CSBConfig.saveConfig();
+                this.configCache = new ConfigCache();
             } catch (FileNotFoundException e) {
                 System.out.println("Failed to save default csb config");
                 e.printStackTrace();
@@ -91,14 +77,15 @@ public class CSBSettingsScreen extends Screen {
             try {
                 CSBConfig.reset(true);
                 CSBConfig.saveConfig();
+                this.configCache = new ConfigCache();
             } catch (FileNotFoundException e) {
                 System.out.println("Failed to save mc default csb config");
                 e.printStackTrace();
             }
             CSB.openSettingsGUI(minecraft, parent);
         } else if (button.id == 11) {
-            CSBConfig.setIsRainbow(!CSBConfig.usingRainbow());
-            button.message = "Chroma: " + (CSBConfig.usingRainbow() ? "ON" : "OFF");
+            CSBConfig.setIsRainbow(!CSBConfig.isRainbow());
+            button.message = "Rainbow: " + (CSBConfig.isRainbow() ? "ON" : "OFF");
         } else if (button.id == 12) {
             CSBConfig.setLinkBlocks(!CSBConfig.isLinkBlocks());
             button.message = "Link Blocks: " + ((CSBConfig.isLinkBlocks()) ? "ON" : "OFF");
@@ -130,15 +117,50 @@ public class CSBSettingsScreen extends Screen {
 
     @Override
     public void removed() {
-        configCache.save();
-        this.configCache = new ConfigCache(
-                CSBConfig.enabled,
-                CSBConfig.red, CSBConfig.green, CSBConfig.blue, CSBConfig.alpha,
-                CSBConfig.thickness,
-                CSBConfig.blinkAlpha,
-                CSBConfig.blinkSpeed,
-                CSBConfig.disableDepthBuffer, CSBConfig.rainbow, CSBConfig.linkBlocks
-        );
+        this.configCache.revertConfig();
     }
 
+
+    static class ConfigCache {
+
+        private final boolean enabled;
+        private final float red;
+        private final float green;
+        private final float blue;
+        private final float alpha;
+        private final float thickness;
+        private final float blinkAlpha;
+        private final float blinkSpeed;
+        private final boolean rainbow;
+        private final boolean linkBlocks;
+        private final boolean showHidden;
+
+        public ConfigCache() {
+            this.enabled = CSBConfig.isEnabled();
+            this.red = CSBConfig.getRed();
+            this.green = CSBConfig.getGreen();
+            this.blue =  CSBConfig.getBlue();
+            this.alpha = CSBConfig.getAlpha();
+            this.thickness = CSBConfig.getThickness();
+            this.blinkAlpha = CSBConfig.getBlinkAlpha();
+            this.blinkSpeed = CSBConfig.getBlinkSpeed();
+            this.rainbow = CSBConfig.isRainbow();
+            this.linkBlocks = CSBConfig.isLinkBlocks();
+            this.showHidden = CSBConfig.isShowHidden();
+        }
+
+        public void revertConfig() {
+            CSBConfig.enabled = this.enabled;
+            CSBConfig.red = this.red;
+            CSBConfig.green = this.green;
+            CSBConfig.blue = this.blue;
+            CSBConfig.alpha = this.alpha;
+            CSBConfig.thickness = this.thickness;
+            CSBConfig.blinkAlpha = this.blinkAlpha;
+            CSBConfig.blinkSpeed = this.blinkSpeed;
+            CSBConfig.rainbow = this.rainbow;
+            CSBConfig.linkBlocks = this.linkBlocks;
+            CSBConfig.showHidden = this.showHidden;
+        }
+    }
 }

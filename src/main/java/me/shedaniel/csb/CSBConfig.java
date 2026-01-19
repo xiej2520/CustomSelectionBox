@@ -7,12 +7,13 @@ import com.google.gson.internal.Streams;
 import com.google.gson.stream.JsonWriter;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.util.math.MathHelper;
 import org.apache.commons.io.FileUtils;
 
 import java.io.*;
 
 public class CSBConfig implements ClientModInitializer {
-    
+
     public static boolean enabled;
     public static float red;
     public static float green;
@@ -21,16 +22,15 @@ public class CSBConfig implements ClientModInitializer {
     public static float thickness;
     public static float blinkAlpha;
     public static float blinkSpeed;
-    public static boolean disableDepthBuffer;
     public static boolean linkBlocks;
     public static boolean showHidden;
     public static boolean rainbow;
-    private static File configFile = new File(FabricLoader.getInstance().getGameDirectory(), "config" + File.separator + "CSB" + File.separator + "config.json");
-    
+    private static final File configFile = new File(FabricLoader.getInstance().getGameDirectory(), "config" + File.separator + "CSB" + File.separator + "config.json");
+
     private static void loadConfig() throws IOException {
         configFile.getParentFile().mkdirs();
         String content = configFile.exists() ? FileUtils.readFileToString(configFile, "utf-8") : "{}";
-        JsonElement jsonElement = new JsonParser().parse(content);
+        JsonElement jsonElement = JsonParser.parseString(content);
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         enabled = !jsonObject.has("enabled") || jsonObject.get("enabled").getAsBoolean();
         red = jsonObject.has("colourRed") ? jsonObject.get("colourRed").getAsInt() / 255.0F : 0F;
@@ -40,13 +40,13 @@ public class CSBConfig implements ClientModInitializer {
         thickness = jsonObject.has("thickness") ? jsonObject.get("thickness").getAsInt() : 2F;
         blinkSpeed = jsonObject.has("blinkSpeed") ? jsonObject.get("blinkSpeed").getAsInt() / 100.0F : 0.2F;
         blinkAlpha = jsonObject.has("blinkAlpha") ? jsonObject.get("blinkAlpha").getAsInt() / 255.0F : 0.390625F;
-        disableDepthBuffer = jsonObject.has("disableDepthBuffer") && jsonObject.get("disableDepthBuffer").getAsBoolean();
         rainbow = jsonObject.has("rainbow") && jsonObject.get("rainbow").getAsBoolean();
-        linkBlocks = jsonObject.has("adjustBoundingBoxByLinkedBlocks") && jsonObject.get("adjustBoundingBoxByLinkedBlocks").getAsBoolean();
-        
+        linkBlocks = jsonObject.has("linkBlocks") && jsonObject.get("linkBlocks").getAsBoolean();
+        showHidden = jsonObject.has("showHidden") && jsonObject.get("showHidden").getAsBoolean();
+
         saveConfig();
     }
-    
+
     public static void saveConfig() throws FileNotFoundException {
         JsonObject object = new JsonObject();
         object.addProperty("enabled", enabled);
@@ -57,16 +57,17 @@ public class CSBConfig implements ClientModInitializer {
         object.addProperty("thickness", (int) thickness);
         object.addProperty("blinkSpeed", (int) (blinkSpeed * 100));
         object.addProperty("blinkAlpha", (int) (blinkAlpha * 255));
-        object.addProperty("disableDepthBuffer", disableDepthBuffer);
         object.addProperty("rainbow", rainbow);
-        object.addProperty("adjustBoundingBoxByLinkedBlocks", linkBlocks);
-        if (configFile.exists())
+        object.addProperty("linkBlocks", linkBlocks);
+        object.addProperty("showHidden", showHidden);
+        if (configFile.exists()) {
             configFile.delete();
+        }
         PrintWriter writer = new PrintWriter(configFile);
         writer.print(objectToString(object));
         writer.close();
     }
-    
+
     private static String objectToString(JsonObject object) {
         try {
             StringWriter stringWriter = new StringWriter();
@@ -79,7 +80,7 @@ public class CSBConfig implements ClientModInitializer {
             throw new AssertionError(e);
         }
     }
-    
+
     public static void reset(boolean mc) throws FileNotFoundException {
         setEnabled(true);
         setRed(0.0F);
@@ -89,16 +90,16 @@ public class CSBConfig implements ClientModInitializer {
         setThickness(mc ? 1.0F : 2.0F);
         setBlinkAlpha(mc ? 0.0F : 0.390625F);
         setBlinkSpeed(0.2F);
-        disableDepthBuffer = false;
         setIsRainbow(false);
         setLinkBlocks(false);
+        setShowHidden(false);
         saveConfig();
     }
-    
+
     public static boolean isLinkBlocks() {
         return linkBlocks;
     }
-    
+
     public static void setLinkBlocks(boolean linkBlocks) {
         CSBConfig.linkBlocks = linkBlocks;
     }
@@ -114,119 +115,75 @@ public class CSBConfig implements ClientModInitializer {
     public static boolean isEnabled() {
         return enabled;
     }
-    
+
     public static void setEnabled(boolean enabled) {
         CSBConfig.enabled = enabled;
     }
-    
+
     public static float getRed() {
-        return between(red, 0.0F, 1.0F);
+        return MathHelper.clamp(red, 0.0F, 1.0F);
     }
-    
+
     public static void setRed(float r) {
-        red = between(r, 0.0F, 1.0F);
+        red = MathHelper.clamp(r, 0.0F, 1.0F);
     }
-    
+
     public static float getGreen() {
-        return between(green, 0.0F, 1.0F);
+        return MathHelper.clamp(green, 0.0F, 1.0F);
     }
-    
+
     public static void setGreen(float g) {
-        green = between(g, 0.0F, 1.0F);
+        green = MathHelper.clamp(g, 0.0F, 1.0F);
     }
-    
+
     public static float getBlue() {
-        return between(blue, 0.0F, 1.0F);
+        return MathHelper.clamp(blue, 0.0F, 1.0F);
     }
-    
+
     public static void setBlue(float b) {
-        blue = between(b, 0.0F, 1.0F);
+        blue = MathHelper.clamp(b, 0.0F, 1.0F);
     }
-    
+
     public static float getAlpha() {
-        return between(alpha, 0.0F, 1.0F);
+        return MathHelper.clamp(alpha, 0.0F, 1.0F);
     }
-    
+
     public static void setAlpha(float a) {
-        alpha = between(a, 0.0F, 1.0F);
+        alpha = MathHelper.clamp(a, 0.0F, 1.0F);
     }
-    
+
     public static float getThickness() {
-        return between(thickness, 0.1F, 7.0F);
+        return MathHelper.clamp(thickness, 0.1F, 7.0F);
     }
-    
+
     public static void setThickness(float t) {
-        thickness = between(t, 0.1F, 7.0F);
+        thickness = MathHelper.clamp(t, 0.1F, 7.0F);
     }
-    
+
     public static float getBlinkAlpha() {
-        return between(blinkAlpha, 0.0F, 1.0F);
+        return MathHelper.clamp(blinkAlpha, 0.0F, 1.0F);
     }
-    
+
     public static void setBlinkAlpha(float ba) {
-        blinkAlpha = between(ba, 0.0F, 1.0F);
+        blinkAlpha = MathHelper.clamp(ba, 0.0F, 1.0F);
     }
-    
+
     public static float getBlinkSpeed() {
-        return between(blinkSpeed, 0.0F, 1.0F);
+        return MathHelper.clamp(blinkSpeed, 0.0F, 1.0F);
     }
-    
+
     public static void setBlinkSpeed(float s) {
-        blinkSpeed = between(s, 0.0F, 1.0F);
+        blinkSpeed = MathHelper.clamp(s, 0.0F, 1.0F);
     }
-    
+
     public static void setIsRainbow(boolean b) {
         rainbow = b;
     }
-    
-    public static boolean usingRainbow() {
+
+    public static boolean isRainbow() {
         return rainbow;
     }
-    
-    public static int getRedInt() {
-        return Math.round(getRed() * 256.0F);
-    }
-    
-    public static int getGreenInt() {
-        return Math.round(getGreen() * 256.0F);
-    }
-    
-    public static int getBlueInt() {
-        return Math.round(getBlue() * 256.0F);
-    }
-    
-    public static int getAlphaInt() {
-        return Math.round(getAlpha() * 256.0F);
-    }
-    
-    public static int getThicknessInt() {
-        return Math.round(getThickness());
-    }
-    
-    public static int getBlinkAlphaInt() {
-        return Math.round(getBlinkAlpha() * 256.0F);
-    }
-    
-    public static int getBlinkSpeedInt() {
-        return Math.round(getBlinkSpeed() * 100.0F);
-    }
-    
-    private static float between(float i, float x, float y) {
-        if (i < x)
-            i = x;
-        if (i > y)
-            i = y;
-        return i;
-    }
-    
-    private static int between(int i, int x, int y) {
-        if (i < x)
-            i = x;
-        if (i > y)
-            i = y;
-        return i;
-    }
-    
+
     @Override
     public void onInitializeClient() {
         try {
@@ -235,5 +192,5 @@ public class CSBConfig implements ClientModInitializer {
             e.printStackTrace();
         }
     }
-    
+
 }

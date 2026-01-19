@@ -3,7 +3,6 @@ package me.shedaniel.csb.api;
 import me.shedaniel.csb.CSBConfig;
 import me.shedaniel.csb.gui.CSBInfo;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.Window;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;

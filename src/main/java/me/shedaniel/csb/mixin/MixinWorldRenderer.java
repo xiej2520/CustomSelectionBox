@@ -64,7 +64,7 @@ public abstract class MixinWorldRenderer implements CSBInfo {
             g = CSBConfig.getGreen();
             b = CSBConfig.getBlue();
             a = CSBConfig.getAlpha();
-            if (CSBConfig.rainbow) {
+            if (CSBConfig.isRainbow()) {
                 final double millis = System.currentTimeMillis() % 10000L / 10000.0f;
                 final int color = HSBtoRGB((float) millis, 0.8f, 0.8f);
                 r = (color >> 16 & 255) / 255.0f;
