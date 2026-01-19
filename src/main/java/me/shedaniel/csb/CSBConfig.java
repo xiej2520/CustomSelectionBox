@@ -25,6 +25,7 @@ public class CSBConfig implements ClientModInitializer {
     public static boolean linkBlocks;
     public static boolean showHidden;
     public static boolean rainbow;
+    public static BreakAnimation breakAnimation;
     private static final File configFile = new File(FabricLoader.getInstance().getGameDirectory(), "config" + File.separator + "CSB" + File.separator + "config.json");
 
     private static void loadConfig() throws IOException {
@@ -43,6 +44,7 @@ public class CSBConfig implements ClientModInitializer {
         rainbow = jsonObject.has("rainbow") && jsonObject.get("rainbow").getAsBoolean();
         linkBlocks = jsonObject.has("linkBlocks") && jsonObject.get("linkBlocks").getAsBoolean();
         showHidden = jsonObject.has("showHidden") && jsonObject.get("showHidden").getAsBoolean();
+        breakAnimation = jsonObject.has("breakAnimation") ? BreakAnimation.values()[jsonObject.get("breakAnimation").getAsInt()] : BreakAnimation.NONE;
 
         saveConfig();
     }
@@ -60,6 +62,7 @@ public class CSBConfig implements ClientModInitializer {
         object.addProperty("rainbow", rainbow);
         object.addProperty("linkBlocks", linkBlocks);
         object.addProperty("showHidden", showHidden);
+        object.addProperty("breakAnimation", breakAnimation.ordinal());
         if (configFile.exists()) {
             configFile.delete();
         }
@@ -182,6 +185,21 @@ public class CSBConfig implements ClientModInitializer {
 
     public static boolean isRainbow() {
         return rainbow;
+    }
+
+    public static void setBreakAnimation(BreakAnimation ba) {
+        breakAnimation = ba;
+    }
+
+    public static BreakAnimation getBreakAnimation() {
+        return breakAnimation;
+    }
+
+    public enum BreakAnimation {
+        NONE,
+        SHRINK,
+        DOWN,
+        ALPHA,
     }
 
     @Override

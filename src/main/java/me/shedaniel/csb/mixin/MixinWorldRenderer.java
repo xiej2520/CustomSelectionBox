@@ -6,6 +6,7 @@ import me.shedaniel.csb.CSBConfig;
 import me.shedaniel.csb.api.CSBRenderer;
 import me.shedaniel.csb.gui.CSBInfo;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.render.world.BlockMiningProgress;
 import net.minecraft.client.render.world.WorldRenderer;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
@@ -21,6 +22,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Map;
 import java.util.Objects;
 
 import static me.shedaniel.csb.CSB.HSBtoRGB;
@@ -37,6 +39,11 @@ public abstract class MixinWorldRenderer implements CSBInfo {
     @Unique private float a = 0f;
     @Unique private float blinkingAlpha = 0f;
     @Shadow private ClientWorld world;
+    @Shadow private final Map<Integer, BlockMiningProgress> miningProgress;
+
+    protected MixinWorldRenderer(Map<Integer, BlockMiningProgress> miningProgress) {
+        this.miningProgress = miningProgress;
+    }
 
     @Shadow
     public static void renderOutlineShape(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, float r, float g, float b, float a) { }
@@ -77,7 +84,8 @@ public abstract class MixinWorldRenderer implements CSBInfo {
             HitResult hitResult = minecraft.crosshairTarget;
             BlockPos blockPos = hitResult.getPos();
             for (CSBRenderer renderer : RENDERERS) {
-                InteractionResult result = Objects.requireNonNull(renderer.render(world, camera, hitResult, tickDelta));
+                BlockMiningProgress miningProgress = this.miningProgress.get(this.minecraft.player.getNetworkId());
+                InteractionResult result = Objects.requireNonNull(renderer.render(world, camera, hitResult, tickDelta, miningProgress == null ? 0.0F : miningProgress.getProgress() / 10.0F));
                 if (result != InteractionResult.PASS) {
                     break;
                 }

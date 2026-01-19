@@ -4,6 +4,7 @@ import me.shedaniel.csb.CSBConfig;
 import me.shedaniel.csb.gui.CSBInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.render.Window;
+import net.minecraft.client.render.world.BlockMiningProgress;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.HitResult;
@@ -73,5 +74,5 @@ public interface CSBRenderer {
         return getInfo().getInnerAlpha();
     }
     
-    InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float delta);
+    InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float delta, float breakProgress);
 }

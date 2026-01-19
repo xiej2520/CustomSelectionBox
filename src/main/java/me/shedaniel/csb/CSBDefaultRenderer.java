@@ -28,7 +28,7 @@ public class CSBDefaultRenderer implements CSBRenderer {
     }
 
     @Override
-    public InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float tickDelta) {
+    public InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float tickDelta, float breakProgress) {
         double dx = camera.prevX + (camera.x - camera.prevX) * tickDelta;
         double dy = camera.prevY + (camera.y - camera.prevY) * tickDelta;
         double dz = camera.prevZ + (camera.z - camera.prevZ) * tickDelta;
@@ -46,26 +46,26 @@ public class CSBDefaultRenderer implements CSBRenderer {
         if (CSBConfig.isShowHidden()) {
             GlStateManager.disableDepthTest();
         }
+        // avoid z-fighting with outline and blinking block
+        GlStateManager.enablePolygonOffset();
+        GlStateManager.polygonOffset(-2.0F, -2.0F);
 
         GL11.glLineWidth(getOutlineThickness());
 
         BlockPos blockPos = hitResult.getPos();
         BlockState blockState = world.getBlockState(blockPos);
 
+        Box originalShape = blockState.getOutlineShape(world, blockPos);
         if (CSBConfig.isLinkBlocks()) {
-            Box originalShape = blockState.getOutlineShape(world, blockPos);
             Box[] shapes = adjustShapeByLinkedBlocks(world, blockState, blockPos, originalShape);
-            // expand to avoid z-fighting for outlines and blinking block
             for (Box shape : shapes) {
-                drawOutlinedBoundingBox(shape.expand(0.002), getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
-                drawBlinkingBlock(shape.expand(0.008), getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
+                drawSelectionBox(shape, breakProgress);
             }
         } else {
-            Box shape = blockState.getOutlineShape(world, blockPos);
-            drawOutlinedBoundingBox(shape.expand(0.002), getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
-            drawBlinkingBlock(shape.expand(0.008), getInnerRed(), getInnerGreen(), getInnerBlue(), getInnerAlpha());
+            drawSelectionBox(originalShape, breakProgress);
         }
 
+        GlStateManager.disablePolygonOffset();
         if (CSBConfig.isShowHidden()) {
             GlStateManager.enableDepthTest();
         }
@@ -78,6 +78,24 @@ public class CSBDefaultRenderer implements CSBRenderer {
         GlStateManager.popMatrix();
 
         return InteractionResult.SUCCESS;
+    }
+
+    private void drawSelectionBox(Box shape, float breakProgress) {
+        float blinkAlpha = CSBConfig.getBreakAnimation() == CSBConfig.BreakAnimation.ALPHA ? breakProgress : getInnerAlpha();
+
+        if (CSBConfig.getBreakAnimation() == CSBConfig.BreakAnimation.DOWN) {
+            double dy = (shape.maxY - shape.minY) * breakProgress;
+            shape = shape.shrink(0, -dy, 0).moved(0, -dy, 0);
+        } else if (CSBConfig.getBreakAnimation() == CSBConfig.BreakAnimation.SHRINK) {
+            double dx = (shape.maxX - shape.minX) * breakProgress;
+            double dy = (shape.maxY - shape.minY) * breakProgress;
+            double dz = (shape.maxZ - shape.minZ) * breakProgress;
+            shape = shape.shrink(-dx, -dy, -dz).moved(-dx / 2, -dy / 2, -dz / 2);
+        }
+
+        // expand to avoid z-fighting for outlines and blinking block
+        drawOutlinedBoundingBox(shape.expand(0.002), getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
+        drawBlinkingBlock(shape.expand(0.005), getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
     }
 
     private void drawOutlinedBoundingBox(Box voxelShapeIn, float red, float green, float blue, float alpha) {

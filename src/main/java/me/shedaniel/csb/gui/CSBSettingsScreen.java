@@ -34,11 +34,12 @@ public class CSBSettingsScreen extends Screen {
         addButton(new CSBSliderWidget(3, 4, this.height / 2 - 14, CSBConfig.getBlue()));
         addButton(new CSBSliderWidget(4, 4, this.height / 2 + 10, CSBConfig.getAlpha()));
         addButton(new CSBSliderWidget(5, 4, this.height / 2 + 34, CSBConfig.getThickness() / 7.0F));
+        addButton(new ButtonWidget(11, 4, this.height / 2 - 86, 150, 20, "Rainbow: " + ((CSBConfig.isRainbow()) ? "ON" : "OFF")));
 
         // right
         addButton(new CSBSliderWidget(7, this.width - 154, this.height / 2 - 44, CSBConfig.getBlinkAlpha()));
         addButton(new CSBSliderWidget(8, this.width - 154, this.height / 2 - 20, CSBConfig.getBlinkSpeed()));
-        addButton(new ButtonWidget(11, this.width - 154, this.height / 2 - 68, 150, 20, "Rainbow: " + ((CSBConfig.isRainbow()) ? "ON" : "OFF")));
+        addButton(new ButtonWidget(10, this.width - 154, this.height / 2 - 68, 150, 20, "Break Animation: " + CSBConfig.getBreakAnimation()));
         addButton(new ButtonWidget(12, this.width - 154, this.height / 2 + 4, 150, 20, "Link Blocks: " + ((CSBConfig.isLinkBlocks()) ? "ON" : "OFF")));
         addButton(new ButtonWidget(13, this.width - 154, this.height / 2 + 28, 150, 20, "Show Hidden: " + ((CSBConfig.isShowHidden()) ? "ON" : "OFF")));
 
@@ -83,6 +84,11 @@ public class CSBSettingsScreen extends Screen {
                 e.printStackTrace();
             }
             CSB.openSettingsGUI(minecraft, parent);
+        } else if (button.id == 10) {
+            CSBConfig.BreakAnimation[] bas = CSBConfig.BreakAnimation.values();
+            int next = (CSBConfig.getBreakAnimation().ordinal() + 1) % bas.length;
+            CSBConfig.setBreakAnimation(bas[next]);
+            button.message = "Break Animation: " + CSBConfig.getBreakAnimation();
         } else if (button.id == 11) {
             CSBConfig.setIsRainbow(!CSBConfig.isRainbow());
             button.message = "Rainbow: " + (CSBConfig.isRainbow() ? "ON" : "OFF");
@@ -101,7 +107,7 @@ public class CSBSettingsScreen extends Screen {
             this.drawBackgroundTexture(0);
         }
         fillGradient(0, 0, this.width, 48 - 4, -1072689136, -804253680); // top
-        fillGradient(0, this.height / 2 - 67, 158, this.height / 2 + 59, -1072689136, -804253680); // left
+        fillGradient(0, this.height / 2 - 91, 158, this.height / 2 + 59, -1072689136, -804253680); // left
         fillGradient(this.width - 158, this.height / 2 - 73, this.width, this.height / 2 + 53, -1072689136, -804253680); // right
         fillGradient(0, this.height - 48 - 4, this.width, this.height, -1072689136, -804253680); // bottom
 
@@ -134,6 +140,7 @@ public class CSBSettingsScreen extends Screen {
         private final boolean rainbow;
         private final boolean linkBlocks;
         private final boolean showHidden;
+        private final CSBConfig.BreakAnimation breakAnimation;
 
         public ConfigCache() {
             this.enabled = CSBConfig.isEnabled();
@@ -147,6 +154,7 @@ public class CSBSettingsScreen extends Screen {
             this.rainbow = CSBConfig.isRainbow();
             this.linkBlocks = CSBConfig.isLinkBlocks();
             this.showHidden = CSBConfig.isShowHidden();
+            this.breakAnimation = CSBConfig.getBreakAnimation();
         }
 
         public void revertConfig() {
@@ -161,6 +169,7 @@ public class CSBSettingsScreen extends Screen {
             CSBConfig.rainbow = this.rainbow;
             CSBConfig.linkBlocks = this.linkBlocks;
             CSBConfig.showHidden = this.showHidden;
+            CSBConfig.breakAnimation = this.breakAnimation;
         }
     }
 }
