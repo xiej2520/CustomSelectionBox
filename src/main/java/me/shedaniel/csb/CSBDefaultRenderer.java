@@ -10,9 +10,11 @@ import net.minecraft.client.render.vertex.Tesselator;
 import net.minecraft.client.render.world.WorldRenderer;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.living.LivingEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.HitResult;
 import net.minecraft.world.InteractionResult;
 import org.lwjgl.opengl.GL11;
@@ -99,7 +101,7 @@ public class CSBDefaultRenderer implements CSBRenderer {
         drawBlinkingBlock(shape.expand(0.002), getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
     }
 
-    private void drawOutlinedBoundingBox(Box voxelShapeIn, float red, float green, float blue, float alpha) {
+    public static void drawOutlinedBoundingBox(Box voxelShapeIn, float red, float green, float blue, float alpha) {
         double minX = voxelShapeIn.minX;
         double minY = voxelShapeIn.minY;
         double minZ = voxelShapeIn.minZ;
@@ -115,7 +117,7 @@ public class CSBDefaultRenderer implements CSBRenderer {
         tesselator.end();
     }
 
-    private void drawBlinkingBlock(Box voxelShapeIn, float red, float green, float blue, float alpha) {
+    public static void drawBlinkingBlock(Box voxelShapeIn, float red, float green, float blue, float alpha) {
         double minX = voxelShapeIn.minX;
         double minY = voxelShapeIn.minY;
         double minZ = voxelShapeIn.minZ;

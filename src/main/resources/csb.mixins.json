@@ -3,13 +3,17 @@
   "package": "me.shedaniel.csb.mixin",
   "compatibilityLevel": "JAVA_8",
   "client": [
-    "MixinWorldRenderer",
-    "MixinClientPlayerEntity",
     "MixinChatScreen",
-    "MixinCommandManager"
+    "MixinClientPlayerEntity",
+    "MixinCommandManager",
+    "MixinEntityRenderDispatcher",
+    "MixinWorldRenderer"
   ],
   "minVersion": "0.7.11",
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+    "MixinEntity"
+  ]
 }

@@ -15,6 +15,7 @@ import java.io.*;
 public class CSBConfig implements ClientModInitializer {
 
     public static boolean enabled;
+    public static boolean entityEnabled;
     public static float red;
     public static float green;
     public static float blue;
@@ -34,6 +35,7 @@ public class CSBConfig implements ClientModInitializer {
         JsonElement jsonElement = JsonParser.parseString(content);
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         enabled = !jsonObject.has("enabled") || jsonObject.get("enabled").getAsBoolean();
+        entityEnabled = jsonObject.has("entityEnabled") && jsonObject.get("entityEnabled").getAsBoolean();
         red = jsonObject.has("colourRed") ? jsonObject.get("colourRed").getAsInt() / 255.0F : 0F;
         green = jsonObject.has("colourGreen") ? jsonObject.get("colourGreen").getAsInt() / 255.0F : 0F;
         blue = jsonObject.has("colourBlue") ? jsonObject.get("colourBlue").getAsInt() / 255.0F : 0F;
@@ -52,6 +54,7 @@ public class CSBConfig implements ClientModInitializer {
     public static void saveConfig() throws FileNotFoundException {
         JsonObject object = new JsonObject();
         object.addProperty("enabled", enabled);
+        object.addProperty("entityEnabled", entityEnabled);
         object.addProperty("colourRed", (int) (red * 255));
         object.addProperty("colourGreen", (int) (green * 255));
         object.addProperty("colourBlue", (int) (blue * 255));
@@ -86,6 +89,7 @@ public class CSBConfig implements ClientModInitializer {
 
     public static void reset(boolean mc) throws FileNotFoundException {
         setEnabled(true);
+        setEntityEnabled(false);
         setRed(0.0F);
         setGreen(0.0F);
         setBlue(0.0F);
@@ -121,6 +125,14 @@ public class CSBConfig implements ClientModInitializer {
 
     public static void setEnabled(boolean enabled) {
         CSBConfig.enabled = enabled;
+    }
+
+    public static boolean isEntityEnabled() {
+        return entityEnabled;
+    }
+
+    public static void setEntityEnabled(boolean entityEnabled) {
+        CSBConfig.entityEnabled = entityEnabled;
     }
 
     public static float getRed() {
