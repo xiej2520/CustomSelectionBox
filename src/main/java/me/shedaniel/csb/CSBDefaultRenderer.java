@@ -34,7 +34,8 @@ public class CSBDefaultRenderer implements CSBRenderer {
         double dz = camera.prevZ + (camera.z - camera.prevZ) * tickDelta;
 
         GlStateManager.pushMatrix();
-        GlStateManager.translated(-dx, -dy, -dz);
+        // using shape.moved(-dx, -dy, -dz) looks better at edges and less z-fighting
+        //GlStateManager.translated(-dx, -dy, -dz);
 
         GL11.glEnable(GL11.GL_LINE_SMOOTH);
 
@@ -48,7 +49,7 @@ public class CSBDefaultRenderer implements CSBRenderer {
         }
         // avoid z-fighting with outline and blinking block
         GlStateManager.enablePolygonOffset();
-        GlStateManager.polygonOffset(-2.0F, -2.0F);
+        GlStateManager.polygonOffset(-1.0F, -1.0F);
 
         GL11.glLineWidth(getOutlineThickness());
 
@@ -59,10 +60,10 @@ public class CSBDefaultRenderer implements CSBRenderer {
         if (CSBConfig.isLinkBlocks()) {
             Box[] shapes = adjustShapeByLinkedBlocks(world, blockState, blockPos, originalShape);
             for (Box shape : shapes) {
-                drawSelectionBox(shape, breakProgress);
+                drawSelectionBox(shape.moved(-dx, -dy, -dz), breakProgress);
             }
         } else {
-            drawSelectionBox(originalShape, breakProgress);
+            drawSelectionBox(originalShape.moved(-dx, -dy, -dz), breakProgress);
         }
 
         GlStateManager.disablePolygonOffset();
@@ -95,7 +96,7 @@ public class CSBDefaultRenderer implements CSBRenderer {
 
         // expand to avoid z-fighting for outlines and blinking block
         drawOutlinedBoundingBox(shape.expand(0.002), getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
-        drawBlinkingBlock(shape.expand(0.005), getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
+        drawBlinkingBlock(shape.expand(0.002), getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
     }
 
     private void drawOutlinedBoundingBox(Box voxelShapeIn, float red, float green, float blue, float alpha) {
