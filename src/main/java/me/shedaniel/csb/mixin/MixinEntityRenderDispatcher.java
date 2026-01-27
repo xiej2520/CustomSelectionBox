@@ -1,12 +1,18 @@
 package me.shedaniel.csb.mixin;
 
 import me.shedaniel.csb.CSBConfig;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
-import net.minecraft.world.HitResult;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,20 +22,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(EntityRenderDispatcher.class)
 public abstract class MixinEntityRenderDispatcher {
     @Shadow
-    protected abstract void renderHitbox(Entity entity, double dx, double dy, double dz, float yaw, float tickDelta);
+    private void renderHitbox(MatrixStack matrixStack, VertexConsumer vertexConsumer, Entity entity, float f) { }
 
-    @Inject(method = "render(Lnet/minecraft/entity/Entity;DDDFFZ)V",
+    @Shadow
+    private World world;
+
+    @Inject(method = "render",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/entity/EntityRenderer;postRender(Lnet/minecraft/entity/Entity;DDDFF)V"
+                    target = "Lnet/minecraft/client/util/math/MatrixStack;pop()V"
             ))
-    public void renderTargetHitbox(Entity entity, double dx, double dy, double dz, float yaw, float tickDelta, boolean skipHitbox, CallbackInfo ci) {
-        HitResult target = Minecraft.getInstance().crosshairTarget;
-        if (CSBConfig.isEntityEnabled() && target != null && target.entity == entity) {
+    public <E extends Entity> void renderTargetHitbox(E entity, double x, double y, double z, float yaw, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
+        HitResult target = MinecraftClient.getInstance().crosshairTarget;
+        if (CSBConfig.isEntityEnabled() && target instanceof EntityHitResult && entity.equals(((EntityHitResult) target).getEntity())) {
             try {
-                renderHitbox(entity, dx, dy, dz, yaw, tickDelta);
+                renderHitbox(matrices, vertexConsumers.getBuffer(RenderLayer.getLines()), entity, tickDelta);
             } catch (Throwable t) {
-                throw new CrashException(CrashReport.of(t, "Rendering entity hitbox in world (CSB)"));
+                throw new CrashException(CrashReport.create(t, "Rendering entity hitbox in world (CSB)"));
             }
         }
     }

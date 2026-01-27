@@ -1,25 +1,23 @@
 package me.shedaniel.csb;
 
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
 import me.shedaniel.csb.api.CSBRenderer;
 import net.minecraft.block.*;
-import net.minecraft.block.state.BlockState;
-import net.minecraft.client.render.platform.GlStateManager;
-import net.minecraft.client.render.vertex.BufferBuilder;
-import net.minecraft.client.render.vertex.DefaultVertexFormat;
-import net.minecraft.client.render.vertex.Tesselator;
-import net.minecraft.client.render.world.WorldRenderer;
+import net.minecraft.block.enums.BedPart;
+import net.minecraft.block.enums.PistonType;
+import net.minecraft.client.render.*;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.living.LivingEntity;
+import net.minecraft.entity.EntityContext;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.HitResult;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
 import org.lwjgl.opengl.GL11;
-
-import java.util.Optional;
 
 
 public class CSBDefaultRenderer implements CSBRenderer {
@@ -30,124 +28,130 @@ public class CSBDefaultRenderer implements CSBRenderer {
     }
 
     @Override
-    public InteractionResult render(ClientWorld world, Entity camera, HitResult hitResult, float tickDelta, float breakProgress) {
-        double dx = camera.prevX + (camera.x - camera.prevX) * tickDelta;
-        double dy = camera.prevY + (camera.y - camera.prevY) * tickDelta;
-        double dz = camera.prevZ + (camera.z - camera.prevZ) * tickDelta;
+    public ActionResult render(ClientWorld world, Camera camera, BlockHitResult hitResult, float tickDelta, float breakProgress) {
+        Vec3d cameraPos = camera.getPos();
 
-        GlStateManager.pushMatrix();
+        RenderSystem.pushMatrix();
         // using shape.moved(-dx, -dy, -dz) looks better at edges and less z-fighting
         //GlStateManager.translated(-dx, -dy, -dz);
 
         GL11.glEnable(GL11.GL_LINE_SMOOTH);
 
-        GlStateManager.enableBlend();
-        GlStateManager.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
-        GlStateManager.disableTexture();
+        RenderSystem.enableBlend();
+        RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ZERO);
+        RenderSystem.disableTexture();
 
-        GlStateManager.depthMask(false);
-        if (CSBConfig.isShowHidden()) {
-            GlStateManager.disableDepthTest();
+        RenderSystem.depthMask(false);
+        if (!CSBConfig.isShowHidden()) {
+            RenderSystem.enableDepthTest();
         }
         // avoid z-fighting with outline and blinking block
-        GlStateManager.enablePolygonOffset();
-        GlStateManager.polygonOffset(-1.0F, -1.0F);
+        RenderSystem.enablePolygonOffset();
+        RenderSystem.polygonOffset(-1.0F, -1.0F);
 
         GL11.glLineWidth(getOutlineThickness());
 
-        BlockPos blockPos = hitResult.getPos();
+        BlockPos blockPos = hitResult.getBlockPos();
         BlockState blockState = world.getBlockState(blockPos);
 
-        Box originalShape = blockState.getOutlineShape(world, blockPos);
+        VoxelShape shape = blockState.getOutlineShape(world, blockPos, EntityContext.of(camera.getFocusedEntity()));
         if (CSBConfig.isLinkBlocks()) {
-            Box[] shapes = adjustShapeByLinkedBlocks(world, blockState, blockPos, originalShape);
-            for (Box shape : shapes) {
-                drawSelectionBox(shape.moved(-dx, -dy, -dz), breakProgress);
-            }
-        } else {
-            drawSelectionBox(originalShape.moved(-dx, -dy, -dz), breakProgress);
+            shape = adjustShapeByLinkedBlocks(world, blockState, blockPos, shape);
         }
+        drawSelectionBox(shape.offset(blockPos.getX() - cameraPos.getX(), blockPos.getY() - cameraPos.getY(), blockPos.getZ() - cameraPos.getZ()), breakProgress);
 
-        GlStateManager.disablePolygonOffset();
-        if (CSBConfig.isShowHidden()) {
-            GlStateManager.enableDepthTest();
+        RenderSystem.disablePolygonOffset();
+        if (!CSBConfig.isShowHidden()) {
+            RenderSystem.disableDepthTest();
         }
-        GlStateManager.depthMask(true);
-        GlStateManager.enableTexture();
-        GlStateManager.disableBlend();
+        RenderSystem.depthMask(true);
+        RenderSystem.enableTexture();
+        RenderSystem.disableBlend();
 
         GL11.glDisable(GL11.GL_LINE_SMOOTH);
 
-        GlStateManager.popMatrix();
+        RenderSystem.popMatrix();
 
-        return InteractionResult.SUCCESS;
+        return ActionResult.SUCCESS;
     }
 
-    private void drawSelectionBox(Box shape, float breakProgress) {
+    private void drawSelectionBox(VoxelShape shape, float breakProgress) {
         float blinkAlpha = CSBConfig.getBreakAnimation() == CSBConfig.BreakAnimation.ALPHA ? breakProgress : getInnerAlpha();
 
         if (CSBConfig.getBreakAnimation() == CSBConfig.BreakAnimation.DOWN) {
-            double dy = (shape.maxY - shape.minY) * breakProgress;
-            shape = shape.shrink(0, -dy, 0).moved(0, -dy, 0);
+            for (Box box : shape.getBoundingBoxes()) {
+                double dy = (box.y2 - box.y1) * breakProgress;
+                VoxelShape cuboid = VoxelShapes.cuboid(box.shrink(0, -dy, 0).offset(0, -dy, 0).expand(0.002));
+                drawOutlinedBoundingBox(cuboid, getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
+                drawBlinkingBlock(cuboid, getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
+            }
         } else if (CSBConfig.getBreakAnimation() == CSBConfig.BreakAnimation.SHRINK) {
-            double dx = (shape.maxX - shape.minX) * breakProgress;
-            double dy = (shape.maxY - shape.minY) * breakProgress;
-            double dz = (shape.maxZ - shape.minZ) * breakProgress;
-            shape = shape.shrink(-dx, -dy, -dz).moved(-dx / 2, -dy / 2, -dz / 2);
+            for (Box box : shape.getBoundingBoxes()) {
+                double dx = (box.x2 - box.x1) * breakProgress;
+                double dy = (box.y2 - box.y1) * breakProgress;
+                double dz = (box.z2 - box.z1) * breakProgress;
+                VoxelShape cuboid = VoxelShapes.cuboid(box.shrink(-dx, -dy, -dz).offset(-dx / 2, -dy / 2, -dz / 2).expand(0.002));
+                drawOutlinedBoundingBox(cuboid, getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
+                drawBlinkingBlock(cuboid, getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
+            }
+        } else {
+            for (Box box : shape.getBoundingBoxes()) {
+                // expand to avoid z-fighting for outlines and blinking block
+                VoxelShape cuboid = VoxelShapes.cuboid(box.expand(0.002));
+                drawOutlinedBoundingBox(cuboid, getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
+                drawBlinkingBlock(cuboid, getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
+            }
         }
-
-        // expand to avoid z-fighting for outlines and blinking block
-        drawOutlinedBoundingBox(shape.expand(0.002), getOutlineRed(), getOutlineGreen(), getOutlineBlue(), getOutlineAlpha());
-        drawBlinkingBlock(shape.expand(0.002), getInnerRed(), getInnerGreen(), getInnerBlue(), blinkAlpha);
     }
 
-    public static void drawOutlinedBoundingBox(Box voxelShapeIn, float red, float green, float blue, float alpha) {
-        double minX = voxelShapeIn.minX;
-        double minY = voxelShapeIn.minY;
-        double minZ = voxelShapeIn.minZ;
-        double maxX = voxelShapeIn.maxX;
-        double maxY = voxelShapeIn.maxY;
-        double maxZ = voxelShapeIn.maxZ;
+    public static void drawOutlinedBoundingBox(VoxelShape voxelShapeIn, float r, float g, float b, float a) {
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        RenderSystem.color4f(r, g, b, a);
+        buffer.begin(GL11.GL_LINES, VertexFormats.POSITION);
+        for (Box box : voxelShapeIn.getBoundingBoxes()) {
+            buffer.vertex(box.x1, box.y1, box.z1).next(); buffer.vertex(box.x2, box.y1, box.z1).next();
+            buffer.vertex(box.x2, box.y1, box.z1).next(); buffer.vertex(box.x2, box.y1, box.z2).next();
+            buffer.vertex(box.x2, box.y1, box.z2).next(); buffer.vertex(box.x1, box.y1, box.z2).next();
+            buffer.vertex(box.x1, box.y1, box.z2).next(); buffer.vertex(box.x1, box.y1, box.z1).next();
 
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.getBuffer();
+            buffer.vertex(box.x1, box.y2, box.z1).next(); buffer.vertex(box.x2, box.y2, box.z1).next();
+            buffer.vertex(box.x2, box.y2, box.z1).next(); buffer.vertex(box.x2, box.y2, box.z2).next();
+            buffer.vertex(box.x2, box.y2, box.z2).next(); buffer.vertex(box.x1, box.y2, box.z2).next();
+            buffer.vertex(box.x1, box.y2, box.z2).next(); buffer.vertex(box.x1, box.y2, box.z1).next();
 
-        buffer.begin(GL11.GL_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        WorldRenderer.addVerticesForOutlineShape(buffer, minX, minY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
-        tesselator.end();
+            buffer.vertex(box.x1, box.y1, box.z1).next(); buffer.vertex(box.x1, box.y2, box.z1).next();
+            buffer.vertex(box.x2, box.y1, box.z1).next(); buffer.vertex(box.x2, box.y2, box.z1).next();
+            buffer.vertex(box.x2, box.y1, box.z2).next(); buffer.vertex(box.x2, box.y2, box.z2).next();
+            buffer.vertex(box.x1, box.y1, box.z2).next(); buffer.vertex(box.x1, box.y2, box.z2).next();
+        }
+        tessellator.draw();
     }
 
-    public static void drawBlinkingBlock(Box voxelShapeIn, float red, float green, float blue, float alpha) {
-        double minX = voxelShapeIn.minX;
-        double minY = voxelShapeIn.minY;
-        double minZ = voxelShapeIn.minZ;
-        double maxX = voxelShapeIn.maxX;
-        double maxY = voxelShapeIn.maxY;
-        double maxZ = voxelShapeIn.maxZ;
+    public static void drawBlinkingBlock(VoxelShape voxelShapeIn, float r, float g, float b, float a) {
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
 
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.getBuffer();
-
-        buffer.begin(GL11.GL_TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        WorldRenderer.addVerticesForShape(buffer, minX, minY, minZ, maxX, maxY, maxZ, red, green, blue, alpha);
-        tesselator.end();
+        buffer.begin(GL11.GL_TRIANGLE_STRIP, VertexFormats.POSITION_COLOR);
+        for (Box box : voxelShapeIn.getBoundingBoxes()) {
+            WorldRenderer.drawBox(buffer, box.x1, box.y1, box.z1, box.x2, box.y2, box.z2, r, g, b, a);
+        }
+        tessellator.draw();
     }
 
-    private Box[] adjustShapeByLinkedBlocks(ClientWorld world, BlockState state, BlockPos pos, Box shape) {
+    private VoxelShape adjustShapeByLinkedBlocks(ClientWorld world, BlockState state, BlockPos pos, VoxelShape shape) {
         Block block = state.getBlock();
-        Optional<Box> other = Optional.empty();
         try {
             if (block instanceof ChestBlock) {
                 // chests aren't actually linked for breaking ¯\_('')_/¯
                 // technically all chests continuously adjacent to each other get combined pre-1.13, but good enough
-                Direction facing = state.get(ChestBlock.FACING);
-                for (Direction d : Direction.Plane.HORIZONTAL) {
-                    BlockPos offsetPos = pos.offset(d);
-                    BlockState anotherChestState = world.getBlockState(pos.offset(d));
-                    if (anotherChestState.getBlock().equals(block)
-                            && anotherChestState.get(ChestBlock.FACING) == facing) {
-                        other = Optional.ofNullable(anotherChestState.getOutlineShape(world, offsetPos));
-                        break;
+                //Direction facing = state.get(ChestBlock.FACING);
+                Direction offset = ChestBlock.getFacing(state); // more like getAdjacent
+                BlockPos offsetPos = pos.offset(offset);
+                BlockState anotherChestState = world.getBlockState(offsetPos);
+                if (anotherChestState.getBlock() == block) { // trapped vs non-trapped
+                    if (offsetPos.offset(ChestBlock.getFacing(anotherChestState)).equals(pos)) {
+                        return VoxelShapes.union(shape, anotherChestState.getOutlineShape(world, offsetPos).offset(offset.getOffsetX(), offset.getOffsetY(), offset.getOffsetZ()));
                     }
                 }
             } else if (block instanceof DoorBlock) {
@@ -155,61 +159,60 @@ public class CSBDefaultRenderer implements CSBRenderer {
                     BlockState otherState = world.getBlockState(pos.up(1));
                     if (otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
                             && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))) {
-                        other = Optional.ofNullable(otherState.getOutlineShape(world, pos.up(1)));
+                        return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos.up(1)).offset(0, 1, 0));
                     }
                 }
                 if (world.getBlockState(pos.down(1)).getBlock() == block) {
                     BlockState otherState = world.getBlockState(pos.down(1));
                     if (otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
                             && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))) {
-                        other = Optional.ofNullable(otherState.getOutlineShape(world, pos.down(1)));
+                        return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos.down(1)).offset(0, -1, 0));
                     }
                 }
             } else if (block instanceof BedBlock) {
                 Direction direction = state.get(HorizontalFacingBlock.FACING);
                 BlockState otherState = world.getBlockState(pos.offset(direction));
-                if (state.get(BedBlock.PART).equals(BedBlock.Part.FOOT) && otherState.getBlock().equals(block)) {
-                    if (otherState.get(BedBlock.PART).equals(BedBlock.Part.HEAD)) {
-                        other = Optional.ofNullable(
-                                otherState.getOutlineShape(world, pos)
-                                        .moved(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
-                        );
+                if (state.get(BedBlock.PART).equals(BedPart.FOOT) && otherState.getBlock().equals(block)) {
+                    if (otherState.get(BedBlock.PART).equals(BedPart.HEAD)) {
+                        return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos)
+                                .offset(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ()));
                     }
                 }
                 otherState = world.getBlockState(pos.offset(direction.getOpposite()));
                 direction = direction.getOpposite();
-                if (state.get(BedBlock.PART).equals(BedBlock.Part.HEAD) && otherState.getBlock().equals(block)) {
-                    if (otherState.get(BedBlock.PART).equals(BedBlock.Part.FOOT)) {
-                        other = Optional.ofNullable(
+                if (state.get(BedBlock.PART).equals(BedPart.HEAD) && otherState.getBlock().equals(block)) {
+                    if (otherState.get(BedBlock.PART).equals(BedPart.FOOT)) {
+                        return VoxelShapes.union(shape,
                                 otherState.getOutlineShape(world, pos)
-                                        .moved(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
+                                        .offset(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
                         );
                     }
                 }
-            } else if (block instanceof PistonBaseBlock && state.get(PistonBaseBlock.EXTENDED)) {
+            } else if (block instanceof PistonBlock && state.get(PistonBlock.EXTENDED)) {
                 // Piston Base
                 Direction direction = state.get(FacingBlock.FACING);
                 BlockState otherState = world.getBlockState(pos.offset(direction));
-                if (otherState.get(PistonHeadBlock.TYPE).equals(block == Blocks.PISTON ? PistonHeadBlock.Type.DEFAULT : PistonHeadBlock.Type.STICKY)
+                if (otherState.get(PistonHeadBlock.TYPE).equals(block == Blocks.PISTON ? PistonType.DEFAULT : PistonType.STICKY)
                         && direction.equals(otherState.get(FacingBlock.FACING))) {
-                    other = Optional.ofNullable(
-                            otherState.getOutlineShape(world, pos).moved(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
+                    return VoxelShapes.union(shape,
+                            otherState.getOutlineShape(world, pos).offset(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
                     );
                 }
             } else if (block instanceof PistonHeadBlock) {
                 // Piston Arm
                 Direction direction = state.get(FacingBlock.FACING);
                 BlockState otherState = world.getBlockState(pos.offset(direction.getOpposite()));
-                if (otherState.getBlock() instanceof PistonBaseBlock && direction == otherState.get(FacingBlock.FACING) && otherState.get(PistonBaseBlock.EXTENDED)) {
-                    other = Optional.ofNullable(
+                if (otherState.getBlock() instanceof PistonBlock && direction == otherState.get(FacingBlock.FACING) && otherState.get(PistonBlock.EXTENDED)) {
+                    return VoxelShapes.union(
+                            shape,
                             otherState.getOutlineShape(world, pos.offset(direction.getOpposite()))
-                                    .moved(direction.getOpposite().getOffsetX(), direction.getOpposite().getOffsetY(), direction.getOpposite().getOffsetZ())
+                                    .offset(direction.getOpposite().getOffsetX(), direction.getOpposite().getOffsetY(), direction.getOpposite().getOffsetZ())
                     );
                 }
             }
         } catch (Exception ignored) {
 
         }
-        return other.map(box -> new Box[] { shape, box }).orElseGet(() -> new Box[] { shape });
+        return shape;
     }
 }

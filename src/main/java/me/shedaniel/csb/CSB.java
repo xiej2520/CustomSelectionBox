@@ -4,7 +4,7 @@ import me.shedaniel.csb.api.CSBRenderer;
 import me.shedaniel.csb.gui.CSBSettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ public class CSB implements ClientModInitializer {
     
     public static final List<CSBRenderer> RENDERERS = new ArrayList<>();
     
-    public static void openSettingsGUI(Minecraft client, Screen parent) {
+    public static void openSettingsGUI(MinecraftClient client, Screen parent) {
         client.openScreen(new CSBSettingsScreen(parent));
     }
     

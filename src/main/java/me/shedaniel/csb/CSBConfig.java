@@ -32,7 +32,7 @@ public class CSBConfig implements ClientModInitializer {
     private static void loadConfig() throws IOException {
         configFile.getParentFile().mkdirs();
         String content = configFile.exists() ? FileUtils.readFileToString(configFile, "utf-8") : "{}";
-        JsonElement jsonElement = JsonParser.parseString(content);
+        JsonElement jsonElement = new JsonParser().parse(content);
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         enabled = !jsonObject.has("enabled") || jsonObject.get("enabled").getAsBoolean();
         entityEnabled = jsonObject.has("entityEnabled") && jsonObject.get("entityEnabled").getAsBoolean();

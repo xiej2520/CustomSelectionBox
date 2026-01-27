@@ -1,25 +1,25 @@
 package me.shedaniel.csb.mixin;
 
 import me.shedaniel.csb.gui.CSBSettingsScreen;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.living.player.LocalClientPlayerEntity;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.network.ClientPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(LocalClientPlayerEntity.class)
+@Mixin(ClientPlayerEntity.class)
 public class MixinClientPlayerEntity {
     
-    @Shadow protected Minecraft minecraft;
+    @Shadow protected MinecraftClient client;
     
-    @Inject(method = "sendChat", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "sendChatMessage", at = @At("HEAD"), cancellable = true)
     public void sendChatMessage(String message, CallbackInfo ci) {
         String[] split = message.toLowerCase().split(" ");
         if (split.length > 0 && split[0].contentEquals("/csbconfig")) {
-            minecraft.openScreen(new CSBSettingsScreen(minecraft.screen instanceof ChatScreen ? null : minecraft.screen));
+            client.openScreen(new CSBSettingsScreen(client.currentScreen instanceof ChatScreen ? null : client.currentScreen));
             ci.cancel();
         }
     }

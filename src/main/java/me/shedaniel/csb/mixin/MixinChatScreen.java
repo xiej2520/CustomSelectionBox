@@ -4,29 +4,30 @@ import me.shedaniel.csb.gui.CSBSettingsScreen;
 import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChatScreen.class)
 public class MixinChatScreen extends Screen {
-    
-    @Shadow protected TextFieldWidget chatField;
-    
-    protected MixinChatScreen() {
-        super();
+
+    @Shadow
+    protected TextFieldWidget chatField;
+
+    protected MixinChatScreen(Text title) {
+        super(title);
     }
-    
+
     @Inject(method = "keyPressed",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;openScreen(Lnet/minecraft/client/gui/screen/Screen;)V", ordinal = 1),
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;openScreen(Lnet/minecraft/client/gui/screen/Screen;)V", ordinal = 1),
             cancellable = true)
-    public void keyPressed(char chr, int key, CallbackInfo ci) {
+    public void keyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         String[] split = this.chatField.getText().trim().toLowerCase().split(" ");
-        if (split.length > 0 && split[0].contentEquals("/csbconfig") && minecraft.screen instanceof CSBSettingsScreen) {
-            ci.cancel();
+        if (split.length > 0 && split[0].contentEquals("/csbconfig") && minecraft.currentScreen instanceof CSBSettingsScreen) {
+            cir.setReturnValue(true);
         }
     }
-    
 }

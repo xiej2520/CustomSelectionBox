@@ -1,7 +1,6 @@
 plugins {
     id 'maven-publish'
     id 'fabric-loom' version '1.10-SNAPSHOT'
-    id 'ploceus' version '1.10-SNAPSHOT'
 }
 
 base {
@@ -12,17 +11,16 @@ group = project.maven_group
 
 repositories {
     //maven { url "https://dl.bintray.com/shedaniel/legacy-yarn-updated" }
+    maven { url "https://maven.terraformersmc.com/releases/" }
 }
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings ploceus.featherMappings(project.feather_build)
+    mappings "net.fabricmc:yarn:${project.mappings_version}:v2"
 
     modImplementation "net.fabricmc:fabric-loader:${project.fabric_loader_version}"
     modImplementation "com.terraformersmc:modmenu:${project.mod_menu_version}"
     implementation "com.google.code.findbugs:jsr305:3.0.2"
-
-    ploceus.dependOsl(project.osl_version)
 }
 
 processResources {

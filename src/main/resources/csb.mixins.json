@@ -5,7 +5,7 @@
   "client": [
     "MixinChatScreen",
     "MixinClientPlayerEntity",
-    "MixinCommandManager",
+    "MixinClientPlayNetworkHandler",
     "MixinEntityRenderDispatcher",
     "MixinWorldRenderer"
   ],
