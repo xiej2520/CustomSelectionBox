@@ -21,6 +21,8 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.Optional;
 
+import static net.minecraft.block.DoublePlantBlock.HALF;
+
 
 public class CSBDefaultRenderer implements CSBRenderer {
 
@@ -137,53 +139,67 @@ public class CSBDefaultRenderer implements CSBRenderer {
         Block block = state.getBlock();
         Optional<Box> other = Optional.empty();
         try {
-            if (block instanceof ChestBlock) {
-                // chests aren't actually linked for breaking ¯\_('')_/¯
-                // technically all chests continuously adjacent to each other get combined pre-1.13, but good enough
-                Direction facing = state.get(ChestBlock.FACING);
-                for (Direction d : Direction.Plane.HORIZONTAL) {
-                    BlockPos offsetPos = pos.offset(d);
-                    BlockState anotherChestState = world.getBlockState(pos.offset(d));
-                    if (anotherChestState.getBlock().equals(block)
-                            && anotherChestState.get(ChestBlock.FACING) == facing) {
-                        other = Optional.ofNullable(anotherChestState.getOutlineShape(world, offsetPos));
-                        break;
+            //if (block instanceof ChestBlock) {
+            //    // chests aren't actually linked for breaking ¯\_('')_/¯
+            //    // technically all chests continuously adjacent to each other get combined pre-1.13, but good enough
+            //    Direction facing = state.get(ChestBlock.FACING);
+            //    for (Direction d : Direction.Plane.HORIZONTAL) {
+            //        BlockPos offsetPos = pos.offset(d);
+            //        BlockState anotherChestState = world.getBlockState(pos.offset(d));
+            //        if (anotherChestState.getBlock().equals(block)
+            //                && anotherChestState.get(ChestBlock.FACING) == facing) {
+            //            other = Optional.ofNullable(anotherChestState.getOutlineShape(world, offsetPos));
+            //            break;
+            //        }
+            //    }
+            //}
+            if (block instanceof DoublePlantBlock) {
+                if (state.get(HALF).equals(DoublePlantBlock.Half.LOWER)) {
+                    BlockState otherState = world.getBlockState(pos.up(1));
+                    if (otherState.getBlock().equals(block) && otherState.get(HALF).equals(DoublePlantBlock.Half.UPPER)) {
+                        return new Box[] { merge(shape, otherState.getOutlineShape(world, pos.up(1))) };
+                    }
+                }
+                if (state.get(HALF).equals(DoublePlantBlock.Half.UPPER)) {
+                    BlockState otherState = world.getBlockState(pos.down(1));
+                    if (otherState.getBlock().equals(block) && otherState.get(HALF).equals(DoublePlantBlock.Half.LOWER)) {
+                        return new Box[] { merge(shape, otherState.getOutlineShape(world, pos.down(1))) };
                     }
                 }
             } else if (block instanceof DoorBlock) {
-                if (world.getBlockState(pos.up(1)).getBlock().equals(block)) {
+                if (state.get(DoorBlock.HALF).equals(DoorBlock.Half.LOWER)) {
                     BlockState otherState = world.getBlockState(pos.up(1));
-                    if (otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
-                            && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))) {
-                        other = Optional.ofNullable(otherState.getOutlineShape(world, pos.up(1)));
+                    if (otherState.getBlock().equals(block)
+                        && otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
+                        && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))
+                        && otherState.get(DoorBlock.HALF).equals(DoorBlock.Half.UPPER)
+                    ) {
+                        return new Box[] { merge(shape, otherState.getOutlineShape(world, pos.up(1))) };
                     }
                 }
-                if (world.getBlockState(pos.down(1)).getBlock() == block) {
+                if (state.get(DoorBlock.HALF).equals(DoorBlock.Half.UPPER)) {
                     BlockState otherState = world.getBlockState(pos.down(1));
-                    if (otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
-                            && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))) {
-                        other = Optional.ofNullable(otherState.getOutlineShape(world, pos.down(1)));
+                    if (otherState.getBlock().equals(block)
+                        && otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
+                        && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))
+                        && otherState.get(DoorBlock.HALF).equals(DoorBlock.Half.LOWER)
+                    ) {
+                        return new Box[] { merge(shape, otherState.getOutlineShape(world, pos.down(1))) };
                     }
                 }
             } else if (block instanceof BedBlock) {
                 Direction direction = state.get(HorizontalFacingBlock.FACING);
-                BlockState otherState = world.getBlockState(pos.offset(direction));
-                if (state.get(BedBlock.PART).equals(BedBlock.Part.FOOT) && otherState.getBlock().equals(block)) {
+                if (state.get(BedBlock.PART).equals(BedBlock.Part.FOOT)) {
+                    BlockState otherState = world.getBlockState(pos.offset(direction));
                     if (otherState.get(BedBlock.PART).equals(BedBlock.Part.HEAD)) {
-                        other = Optional.ofNullable(
-                                otherState.getOutlineShape(world, pos)
-                                        .moved(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
-                        );
+                        return new Box[] { merge(shape, otherState.getOutlineShape(world, pos.offset(direction))) };
                     }
                 }
-                otherState = world.getBlockState(pos.offset(direction.getOpposite()));
-                direction = direction.getOpposite();
-                if (state.get(BedBlock.PART).equals(BedBlock.Part.HEAD) && otherState.getBlock().equals(block)) {
+                if (state.get(BedBlock.PART).equals(BedBlock.Part.HEAD)) {
+                    direction = direction.getOpposite();
+                    BlockState otherState = world.getBlockState(pos.offset(direction));
                     if (otherState.get(BedBlock.PART).equals(BedBlock.Part.FOOT)) {
-                        other = Optional.ofNullable(
-                                otherState.getOutlineShape(world, pos)
-                                        .moved(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
-                        );
+                        return new Box[] { merge(shape, otherState.getOutlineShape(world, pos.offset(direction))) };
                     }
                 }
             } else if (block instanceof PistonBaseBlock && state.get(PistonBaseBlock.EXTENDED)) {
@@ -192,24 +208,31 @@ public class CSBDefaultRenderer implements CSBRenderer {
                 BlockState otherState = world.getBlockState(pos.offset(direction));
                 if (otherState.get(PistonHeadBlock.TYPE).equals(block == Blocks.PISTON ? PistonHeadBlock.Type.DEFAULT : PistonHeadBlock.Type.STICKY)
                         && direction.equals(otherState.get(FacingBlock.FACING))) {
-                    other = Optional.ofNullable(
-                            otherState.getOutlineShape(world, pos).moved(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
-                    );
+                    other = Optional.ofNullable(otherState.getOutlineShape(world, pos.offset(direction)));
                 }
             } else if (block instanceof PistonHeadBlock) {
                 // Piston Arm
                 Direction direction = state.get(FacingBlock.FACING);
-                BlockState otherState = world.getBlockState(pos.offset(direction.getOpposite()));
-                if (otherState.getBlock() instanceof PistonBaseBlock && direction == otherState.get(FacingBlock.FACING) && otherState.get(PistonBaseBlock.EXTENDED)) {
-                    other = Optional.ofNullable(
-                            otherState.getOutlineShape(world, pos.offset(direction.getOpposite()))
-                                    .moved(direction.getOpposite().getOffsetX(), direction.getOpposite().getOffsetY(), direction.getOpposite().getOffsetZ())
-                    );
+                Direction opposite = direction.getOpposite();
+                BlockState otherState = world.getBlockState(pos.offset(opposite));
+                if (otherState.getBlock() instanceof PistonBaseBlock && direction.equals(otherState.get(FacingBlock.FACING)) && otherState.get(PistonBaseBlock.EXTENDED)) {
+                    other = Optional.ofNullable(otherState.getOutlineShape(world, pos.offset(opposite)));
                 }
             }
         } catch (Exception ignored) {
 
         }
         return other.map(box -> new Box[] { shape, box }).orElseGet(() -> new Box[] { shape });
+    }
+
+    private static Box merge(Box shape1, Box shape2) {
+        return new Box(
+            Math.min(shape1.minX, shape2.minX),
+            Math.min(shape1.minY, shape2.minY),
+            Math.min(shape1.minZ, shape2.minZ),
+            Math.max(shape1.maxX, shape2.maxX),
+            Math.max(shape1.maxY, shape2.maxY),
+            Math.max(shape1.maxZ, shape2.maxZ)
+        );
     }
 }
