@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import me.shedaniel.csb.api.CSBRenderer;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.BedPart;
+import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.block.enums.PistonType;
 import net.minecraft.client.render.*;
 import net.minecraft.client.world.ClientWorld;
@@ -18,7 +19,6 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import org.lwjgl.opengl.GL11;
-
 
 public class CSBDefaultRenderer implements CSBRenderer {
 
@@ -142,50 +142,75 @@ public class CSBDefaultRenderer implements CSBRenderer {
     private VoxelShape adjustShapeByLinkedBlocks(ClientWorld world, BlockState state, BlockPos pos, VoxelShape shape) {
         Block block = state.getBlock();
         try {
-            if (block instanceof ChestBlock) {
-                // chests aren't actually linked for breaking ¯\_('')_/¯
-                // technically all chests continuously adjacent to each other get combined pre-1.13, but good enough
-                //Direction facing = state.get(ChestBlock.FACING);
-                Direction offset = ChestBlock.getFacing(state); // more like getAdjacent
-                BlockPos offsetPos = pos.offset(offset);
-                BlockState anotherChestState = world.getBlockState(offsetPos);
-                if (anotherChestState.getBlock() == block) { // trapped vs non-trapped
-                    if (offsetPos.offset(ChestBlock.getFacing(anotherChestState)).equals(pos)) {
-                        return VoxelShapes.union(shape, anotherChestState.getOutlineShape(world, offsetPos).offset(offset.getOffsetX(), offset.getOffsetY(), offset.getOffsetZ()));
-                    }
-                }
-            } else if (block instanceof DoorBlock) {
-                if (world.getBlockState(pos.up(1)).getBlock().equals(block)) {
+             //if (block instanceof ChestBlock) {
+             //    // chests aren't actually linked for breaking ¯\_('')_/¯
+             //    // technically all chests continuously adjacent to each other get combined pre-1.13, but good enough
+             //   Direction facing = state.get(ChestBlock.FACING);
+             //   for (Direction d : Direction.Plane.HORIZONTAL) {
+             //       BlockPos offsetPos = pos.offset(d);
+             //       BlockState anotherChestState = world.getBlockState(pos.offset(d));
+             //       if (anotherChestState.getBlock().equals(block)
+             //               && anotherChestState.get(ChestBlock.FACING) == facing) {
+             //           other = Optional.ofNullable(anotherChestState.getOutlineShape(world, offsetPos));
+             //           break;
+             //   //Direction facing = state.get(ChestBlock.FACING);
+             //   Direction offset = ChestBlock.getFacing(state); // more like getAdjacent
+             //   BlockPos offsetPos = pos.offset(offset);
+             //   BlockState anotherChestState = world.getBlockState(offsetPos);
+             //   if (anotherChestState.getBlock() == block) { // trapped vs non-trapped
+             //       if (offsetPos.offset(ChestBlock.getFacing(anotherChestState)).equals(pos)) {
+             //           return VoxelShapes.union(shape, anotherChestState.getOutlineShape(world, offsetPos).offset(offset.getOffsetX(), offset.getOffsetY(), offset.getOffsetZ()));
+            if (block instanceof TallPlantBlock) {
+                if (state.get(TallPlantBlock.HALF).equals(DoubleBlockHalf.LOWER)) {
                     BlockState otherState = world.getBlockState(pos.up(1));
-                    if (otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
-                            && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))) {
+                    if (otherState.getBlock().equals(block) && otherState.get(TallPlantBlock.HALF).equals(DoubleBlockHalf.UPPER)) {
                         return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos.up(1)).offset(0, 1, 0));
                     }
                 }
-                if (world.getBlockState(pos.down(1)).getBlock() == block) {
+                if (state.get(TallPlantBlock.HALF).equals(DoubleBlockHalf.UPPER)) {
                     BlockState otherState = world.getBlockState(pos.down(1));
-                    if (otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
-                            && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))) {
+                    if (otherState.getBlock().equals(block) && otherState.get(TallPlantBlock.HALF).equals(DoubleBlockHalf.LOWER)) {
+                        return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos.down(1)).offset(0, -1, 0));
+                    }
+                }
+            } else if (block instanceof DoorBlock) {
+                if (state.get(DoorBlock.HALF).equals(DoubleBlockHalf.LOWER)) {
+                    BlockState otherState = world.getBlockState(pos.up(1));
+                    if (otherState.getBlock().equals(block)
+                        && otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
+                        && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))
+                        && otherState.get(DoorBlock.HALF).equals(DoubleBlockHalf.UPPER)
+                    ) {
+                        return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos.up(1)).offset(0, 1, 0));
+                    }
+                }
+                if (state.get(DoorBlock.HALF).equals(DoubleBlockHalf.UPPER)) {
+                    BlockState otherState = world.getBlockState(pos.down(1));
+                    if (otherState.getBlock().equals(block)
+                        && otherState.get(DoorBlock.FACING).equals(state.get(DoorBlock.FACING))
+                        && otherState.get(DoorBlock.HINGE).equals(state.get(DoorBlock.HINGE))
+                        && otherState.get(DoorBlock.HALF).equals(DoubleBlockHalf.LOWER)
+                    ) {
                         return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos.down(1)).offset(0, -1, 0));
                     }
                 }
             } else if (block instanceof BedBlock) {
                 Direction direction = state.get(HorizontalFacingBlock.FACING);
-                BlockState otherState = world.getBlockState(pos.offset(direction));
-                if (state.get(BedBlock.PART).equals(BedPart.FOOT) && otherState.getBlock().equals(block)) {
+                if (state.get(BedBlock.PART).equals(BedPart.FOOT)) {
+                    BlockState otherState = world.getBlockState(pos.offset(direction));
                     if (otherState.get(BedBlock.PART).equals(BedPart.HEAD)) {
                         return VoxelShapes.union(shape, otherState.getOutlineShape(world, pos)
                                 .offset(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ()));
                     }
                 }
-                otherState = world.getBlockState(pos.offset(direction.getOpposite()));
-                direction = direction.getOpposite();
-                if (state.get(BedBlock.PART).equals(BedPart.HEAD) && otherState.getBlock().equals(block)) {
+                if (state.get(BedBlock.PART).equals(BedPart.HEAD)) {
+                    direction = direction.getOpposite();
+                    BlockState otherState = world.getBlockState(pos.offset(direction));
                     if (otherState.get(BedBlock.PART).equals(BedPart.FOOT)) {
                         return VoxelShapes.union(shape,
-                                otherState.getOutlineShape(world, pos)
+                                 otherState.getOutlineShape(world, pos.offset(direction))
                                         .offset(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ())
-                        );
+                         );
                     }
                 }
             } else if (block instanceof PistonBlock && state.get(PistonBlock.EXTENDED)) {
@@ -205,9 +230,9 @@ public class CSBDefaultRenderer implements CSBRenderer {
                 if (otherState.getBlock() instanceof PistonBlock && direction == otherState.get(FacingBlock.FACING) && otherState.get(PistonBlock.EXTENDED)) {
                     return VoxelShapes.union(
                             shape,
-                            otherState.getOutlineShape(world, pos.offset(direction.getOpposite()))
+                             otherState.getOutlineShape(world, pos.offset(direction.getOpposite()))
                                     .offset(direction.getOpposite().getOffsetX(), direction.getOpposite().getOffsetY(), direction.getOpposite().getOffsetZ())
-                    );
+                     );
                 }
             }
         } catch (Exception ignored) {
