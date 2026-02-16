@@ -7,6 +7,7 @@
     "MixinClientPlayerEntity",
     "MixinCommandManager",
     "MixinEntityRenderDispatcher",
+    "MixinGameRenderer",
     "MixinWorldRenderer"
   ],
   "minVersion": "0.7.11",
