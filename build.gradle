@@ -1,7 +1,7 @@
 plugins {
     id 'maven-publish'
-    id 'fabric-loom' version '1.10-SNAPSHOT'
-    id 'ploceus' version '1.10-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom-remap' version '1.16.1'
+    id 'ploceus' version '1.16.1'
 }
 
 base {
@@ -12,6 +12,10 @@ group = project.maven_group
 
 repositories {
     //maven { url "https://dl.bintray.com/shedaniel/legacy-yarn-updated" }
+}
+
+ploceus {
+    setIntermediaryGeneration(2)
 }
 
 dependencies {

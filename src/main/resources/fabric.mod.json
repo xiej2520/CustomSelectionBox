@@ -27,7 +27,8 @@
     "csb.mixins.json"
   ],
   "authors": [
-    "shedaniel"
+    "shedaniel",
+    "xiej2520"
   ],
   "custom": {
     "modmenu:clientsideOnly": true

@@ -1,7 +1,7 @@
 {
   description = "A Nix-flake for a minecraft modding dev environment.";
 
-  inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
   outputs = { self, nixpkgs }:
     let
@@ -11,13 +11,16 @@
         pkgs = import nixpkgs { inherit system; };
         deps = with pkgs; [
           openjdk
-          gradle
+          zulu8
+          gradle_9
           libpulseaudio
           libGL
           glfw
           openal
           stdenv.cc.cc.lib
-          xorg.libXxf86vm
+          libxxf86vm
+          libxcursor
+          libxrandr
         ];
       in
       f {
@@ -44,10 +47,15 @@
             fi
             ln -sf ${pkgs.openjdk}/lib/openjdk $BASE_DIR/.share/java
 
+            if [ -L "$BASE_DIR/.share/java8" ]; then
+              unlink "$BASE_DIR/.share/java8"
+            fi
+            ln -sf ${pkgs.zulu8} $BASE_DIR/.share/java8
+
             if [ -L "$BASE_DIR/.share/gradle" ]; then
               unlink "$BASE_DIR/.share/gradle"
             fi
-            ln -sf ${pkgs.gradle}/lib/gradle $BASE_DIR/.share/gradle
+            ln -sf ${pkgs.gradle_9}/libexec/gradle $BASE_DIR/.share/gradle
             export GRADLE_HOME="$BASE_DIR/.share/gradle"
 
             export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${

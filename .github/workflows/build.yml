@@ -42,8 +42,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: build/libs/*.jar
-          tag_name: v5.0.5-${{ github.run_number }}
-          name: Release v5.0.5-${{ github.run_number }}
+          tag_name: v5.1.0-${{ github.run_number }}
+          name: Release v5.1.0-${{ github.run_number }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
