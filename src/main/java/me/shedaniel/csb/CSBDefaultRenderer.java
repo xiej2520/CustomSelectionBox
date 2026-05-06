@@ -204,7 +204,8 @@ public class CSBDefaultRenderer implements CSBRenderer {
                 // Piston Base
                 Direction direction = state.get(FacingBlock.FACING);
                 BlockState otherState = world.getBlockState(pos.offset(direction));
-                if (otherState.get(PistonHeadBlock.TYPE).equals(block == Blocks.PISTON ? PistonHeadBlock.Type.DEFAULT : PistonHeadBlock.Type.STICKY)
+                if (otherState.getBlock().equals(Blocks.PISTON_HEAD)
+                        && otherState.get(PistonHeadBlock.TYPE).equals(block == Blocks.PISTON ? PistonHeadBlock.Type.DEFAULT : PistonHeadBlock.Type.STICKY)
                         && direction.equals(otherState.get(FacingBlock.FACING))) {
                     other = Optional.ofNullable(otherState.getOutlineShape(world, pos.offset(direction)));
                 }
